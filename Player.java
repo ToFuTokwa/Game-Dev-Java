@@ -23,7 +23,15 @@ public class Player implements KeyListener, MouseListener {
     public final int playerWidth = 64;
     public final int playerHeight = 64;
 
-    // Animation
+    // Movement
+    private int playerSpeed = 3;
+
+    // Jump & gravity
+    private double velocityY = 0;
+    private final double gravity = 0.5;
+    private final double jumpStrength = -11;
+    
+    // PlayerAnimation
     private BufferedImage[] idle;
     private BufferedImage[] walking;
     private BufferedImage[] jumping;
@@ -40,14 +48,6 @@ public class Player implements KeyListener, MouseListener {
     private boolean isMoving = false;
     private boolean isGrounded;
     private boolean isAttacking;
-
-    // Movement
-    private int playerSpeed = 3;
-
-    // Jump & gravity
-    private double velocityY = 0;
-    private final double gravity = 0.5;
-    private final double jumpStrength = -11;
     private int groundLevel;
 
     // Key movement
@@ -59,31 +59,7 @@ public class Player implements KeyListener, MouseListener {
         loadAnimations();
     }
 
-    private void loadAnimations() {
-        // Absolute paths for testing
-        String base = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/playerSprite/";
-        idle = loadFrames(base + "playerIdle/", 4, 1);
-        walking = loadFrames(base + "playerWalk/", 12, 5);
-        jumping = loadFrames(base + "playerJump/", 8, 23);
-        attacking = loadFrames(base + "playerAttack/", 8, 43);
-    }
-
-    private BufferedImage[] loadFrames(String folderPath, int count, int startIndex) {
-        BufferedImage[] frames = new BufferedImage[count];
-        try {
-            for (int i = 0; i < count; i++) {
-                
-                String fileName = folderPath + "AnimationSheet_Character-" + (startIndex + i) + ".png.png";
-                frames[i] = ImageIO.read(new File(fileName));
-            }
-        } catch (IOException e) {
-            System.err.println("Error loading images from: " + folderPath);
-            e.printStackTrace();
-        }
-        return frames;
-    }
-
-    public void update() {
+    private void playerControl() {
         // Process Input and Determine State
         // Movement is allowed while attacking based on user preference
         isMoving = (leftPressed || rightPressed) && isGrounded;
@@ -118,7 +94,33 @@ public class Player implements KeyListener, MouseListener {
         // Wall Collision
         if (playerX < 0) playerX = 0;
         if (playerX + playerWidth > screenWidth) playerX = screenWidth - playerWidth;
+    }
 
+    private void loadAnimations() {
+        // Absolute paths for testing
+        String base = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/playerSprite/";
+        idle = loadFrames(base + "playerIdle/", 4, 1);
+        walking = loadFrames(base + "playerWalk/", 12, 5);
+        jumping = loadFrames(base + "playerJump/", 8, 23);
+        attacking = loadFrames(base + "playerAttack/", 8, 43);
+    }
+
+    private BufferedImage[] loadFrames(String folderPath, int count, int startIndex) {
+        BufferedImage[] frames = new BufferedImage[count];
+        try {
+            for (int i = 0; i < count; i++) {
+                
+                String fileName = folderPath + "AnimationSheet_Character-" + (startIndex + i) + ".png.png";
+                frames[i] = ImageIO.read(new File(fileName));
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading images from: " + folderPath);
+            e.printStackTrace();
+        }
+        return frames;
+    }
+    
+    public void AnimationStateHandling(){
         // Animation State Handling
         BufferedImage[] currentAnim = getCurrentAnimation();
         long currentTime = System.currentTimeMillis();
@@ -150,6 +152,11 @@ public class Player implements KeyListener, MouseListener {
                 currentFrameIndex = 0;
             }
         }
+    }
+
+    public void update() {
+        playerControl();
+        AnimationStateHandling();
     }
 
     private BufferedImage[] getCurrentAnimation() {
