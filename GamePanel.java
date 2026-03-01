@@ -16,7 +16,7 @@ public class GamePanel extends JPanel implements Runnable {
     private int rowCount = 23;
     private int screenWidth = columnCount * tileSize;
     private int screenHeigth = rowCount * tileSize;
-    private ImageIcon backgroundIcon = new ImageIcon("C:/Users/mark/Desktop/GameDev Java/Assets/tempBackGround.jpg");
+    private ImageIcon backgroundIcon = new ImageIcon("C:/Users/mark/Desktop/Game-Dev-Javas/Assets/tempBackGround.jpg");
     private Image backgroundImage = backgroundIcon.getImage();
 
     //FPS

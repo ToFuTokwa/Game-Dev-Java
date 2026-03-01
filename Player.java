@@ -61,7 +61,7 @@ public class Player implements KeyListener, MouseListener {
 
     private void loadAnimations() {
         // Absolute paths for testing
-        String base = "C:/Users/mark/Desktop/GameDev Java/Assets/playerSprite/";
+        String base = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/playerSprite/";
         idle = loadFrames(base + "playerIdle/", 4, 1);
         walking = loadFrames(base + "playerWalk/", 12, 5);
         jumping = loadFrames(base + "playerJump/", 8, 23);
