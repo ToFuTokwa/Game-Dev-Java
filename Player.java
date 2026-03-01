@@ -40,8 +40,8 @@ public class Player implements KeyListener, MouseListener {
     private BufferedImage[] lastAnimation = null;
     private int currentFrameIndex = 0;
     private long lastFrameTime = 0;
-    private final int frameDuration = 130; // Time in ms per frame
-    private int attackFrameDuration = 260; 
+    private final int frameDuration = 260; // Time in ms per frame
+    private int attackFrameDuration = 160; 
     
     // Player state
     private boolean facingRight = true;
@@ -154,11 +154,6 @@ public class Player implements KeyListener, MouseListener {
         }
     }
 
-    public void update() {
-        playerControl();
-        AnimationStateHandling();
-    }
-
     private BufferedImage[] getCurrentAnimation() {
         if (isAttacking) return attacking;
         if (!isGrounded) return jumping;
@@ -166,7 +161,7 @@ public class Player implements KeyListener, MouseListener {
         return idle;
     }
 
-    public void draw(Graphics g) {
+    public void playerAnimationDraw(Graphics g) {
         BufferedImage[] currentAnim = getCurrentAnimation();
         if (currentAnim != null && currentAnim.length > 0) {
             
@@ -182,6 +177,15 @@ public class Player implements KeyListener, MouseListener {
                 g.drawImage(frame, playerX + playerWidth, playerY, -playerWidth, playerHeight, null);
             }
         }
+    }
+
+    public void update() {
+        playerControl();
+        AnimationStateHandling();
+    }
+
+    public void draw(Graphics g) {
+        playerAnimationDraw(g);
     }
 
     @Override
