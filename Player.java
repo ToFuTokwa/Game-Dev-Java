@@ -18,10 +18,16 @@ public class Player implements KeyListener, MouseListener {
     private final int screenHeight = rowCount * tileSize;
 
     // Player position and size
-    public int playerX = 100;
-    public int playerY;
-    public final int playerWidth = 64;
-    public final int playerHeight = 64;
+    private int playerX = 100;
+    private int playerY;
+    private final int playerWidth = 64;
+    private final int playerHeight = 64;
+    
+    private Rectangle hitbox;
+    private final int hitboxWidth = playerWidth - 41; 
+    private final int hitboxHeight = playerHeight - 32; 
+    private final int offsetX = (playerWidth - hitboxWidth) / 2; 
+    private final int offsetY = (playerHeight - hitboxHeight) / 2; 
 
     // Movement
     private int playerSpeed = 3;
@@ -56,6 +62,7 @@ public class Player implements KeyListener, MouseListener {
     public Player() {
         groundLevel = screenHeight - playerHeight;
         playerY = groundLevel;
+        hitbox = new Rectangle(playerX + offsetX, playerY + offsetY, hitboxWidth, hitboxHeight);
         loadAnimations();
     }
 
@@ -182,10 +189,14 @@ public class Player implements KeyListener, MouseListener {
     public void update() {
         playerControl();
         AnimationStateHandling();
+        hitbox.x = playerX + offsetX;
+        hitbox.y = playerY + offsetY;
     }
 
     public void draw(Graphics g) {
         playerAnimationDraw(g);
+        g.setColor(Color.cyan); // Matches the color in your screenshot
+        g.drawRect(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
     }
 
     @Override
