@@ -22,20 +22,6 @@ public class Player implements KeyListener, MouseListener {
     private int playerY;
     private final int playerWidth = 64;
     private final int playerHeight = 64;
-    
-    // player HitBox variable
-    private Rectangle hitbox;
-    private final int hitboxWidth = playerWidth - 41; 
-    private final int hitboxHeight = playerHeight - 32; 
-    private final int offsetX = (playerWidth - hitboxWidth) / 2; 
-    private final int offsetY = (playerHeight - hitboxHeight) / 2; 
-
-    // Attack HitBox
-    private Rectangle attackHitbox;
-    private final int attackHitboxWidth = 19;
-    private final int attackHitboxHeigth = 41;
-    // Offsets now used to calculate positioning relative to direction
-    private final int attackVerticalOffset = (playerHeight - attackHitboxHeigth) / 2;
 
     // Movement
     private int playerSpeed = 3;
@@ -70,8 +56,6 @@ public class Player implements KeyListener, MouseListener {
     public Player() {
         groundLevel = screenHeight - playerHeight;
         playerY = groundLevel;
-        hitbox = new Rectangle(playerX + offsetX, playerY + offsetY, hitboxWidth, hitboxHeight);
-        attackHitbox = new Rectangle(0, 0, attackHitboxWidth, attackHitboxHeigth);
         loadAnimations();
     }
 
@@ -196,37 +180,11 @@ public class Player implements KeyListener, MouseListener {
 
     public void update() {
         playerControl();
-        AnimationStateHandling();
-        
-        // Update regular movement hitbox
-        hitbox.x = playerX + offsetX;
-        hitbox.y = playerY + offsetY;
-
-        // --- UPDATED ATTACK HITBOX LOGIC ---
-        // Position in front of the player based on direction
-        if (facingRight) {
-            attackHitbox.x = playerX + playerWidth - 20; // Slightly inside player width
-        } else {
-            attackHitbox.x = playerX - attackHitboxWidth + 20; // Slightly inside player width
-        }
-        attackHitbox.y = playerY + attackVerticalOffset;
-       
+        AnimationStateHandling();      
     }
 
     public void draw(Graphics g) {
-        playerAnimationDraw(g);
-        
-        // Draw movement hitbox for debugging
-        g.setColor(Color.cyan); 
-        g.drawRect(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
-        
-        // --- UPDATED DRAW LOGIC ---
-        // Only draw the attack hitbox when actively attacking
-        if (isAttacking) {
-            g.setColor(Color.red);
-            g.drawRect(attackHitbox.x, attackHitbox.y, attackHitbox.width, attackHitbox.height);
-        }
-       
+        playerAnimationDraw(g);     
     }
 
     @Override
