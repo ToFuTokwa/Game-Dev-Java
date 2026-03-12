@@ -41,7 +41,7 @@ public class Player implements KeyListener, MouseListener {
 
     // Returns standard Rectangle to fix the "Line 119" error
     public Rectangle getBounds() {
-        return new Rectangle((int)playerX + 10, (int)playerY, playerWidth - 27, playerHeight);
+        return new Rectangle((int)playerX + 10, (int)playerY + 10, playerWidth - 27, playerHeight - 10);
     }
 
     public void playerControl(CheckCollision checker, TileManager tileManager) {
@@ -151,6 +151,8 @@ public class Player implements KeyListener, MouseListener {
                 g.drawImage(frame, (int)playerX + playerWidth, (int)playerY, -playerWidth, playerHeight, null);
             }
         }
+        g.setColor(Color.CYAN);
+        g.drawRect((int)playerX + 10, (int)playerY + 10, playerWidth - 27, playerHeight - 10);
     }
 
     public void update(CheckCollision checker, TileManager tileManager) {

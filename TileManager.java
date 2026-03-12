@@ -54,6 +54,8 @@ public class TileManager {
                     if (img != null)
                         g.drawImage(img, col * tileWidth, row * tileHeight, tileWidth, tileHeight, null);
                 }
+                g.setColor(Color.RED);
+                g.drawRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
             }
         }
     }
