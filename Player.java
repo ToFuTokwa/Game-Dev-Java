@@ -112,7 +112,7 @@ public class Player implements KeyListener, MouseListener {
     }
 
     private void loadAnimations() {
-        // Absolute paths for testing
+        // Absolute paths
         String base = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/playerSprite/";
         idle = loadFrames(base + "playerIdle/", 4, 1);
         walking = loadFrames(base + "playerWalk/", 12, 5);
@@ -210,7 +210,7 @@ public class Player implements KeyListener, MouseListener {
             attackHitbox.x = playerX - attackHitboxWidth + 20; // Slightly inside player width
         }
         attackHitbox.y = playerY + attackVerticalOffset;
-        // ------------------------------------
+       
     }
 
     public void draw(Graphics g) {
@@ -226,7 +226,7 @@ public class Player implements KeyListener, MouseListener {
             g.setColor(Color.red);
             g.drawRect(attackHitbox.x, attackHitbox.y, attackHitbox.width, attackHitbox.height);
         }
-        // --------------------------
+       
     }
 
     @Override
@@ -254,6 +254,7 @@ public class Player implements KeyListener, MouseListener {
             if (!isAttacking) { // Prevent spamming reset on attack
                 isAttacking = true;
                 currentFrameIndex = 0;
+                
             }
         }
     }

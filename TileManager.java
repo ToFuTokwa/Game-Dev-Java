@@ -1,0 +1,48 @@
+import java.awt.*;
+import java.awt.image.*;
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
+
+public class TileManager {
+
+    private TileMap tileMap;
+    private int tileSize = 32;
+    private BufferedImage Dirt, GrassDirt, FullGreen, LeftFloat, MiddleFloat, RightFloat;
+
+    public TileManager(TileMap tileMap) {
+        this.tileMap = tileMap;
+        // Fixed: Relative path for tiles
+        String path = "Assets/tileSet/";
+
+        try {
+            Dirt = ImageIO.read(new File(path + "Dirt.png"));
+            GrassDirt = ImageIO.read(new File(path + "GrassDirt.png"));
+            FullGreen = ImageIO.read(new File(path + "FullGreen.png"));
+            LeftFloat = ImageIO.read(new File(path + "LeftFloat.png"));
+            MiddleFloat = ImageIO.read(new File(path + "MiddleFloat.png"));
+            RightFloat = ImageIO.read(new File(path + "RightFloat.png"));
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    public void draw(Graphics g) {
+        int[][] map = tileMap.getMap();
+        for (int row = 0; row < tileMap.getRows(); row++) {
+            for (int col = 0; col < tileMap.getCols(); col++) {
+                int tile = map[row][col];
+                if (tile != 0) {
+                    BufferedImage img = null;
+                    switch (tile) {
+                        case 1: img = Dirt; break;
+                        case 2: img = GrassDirt; break;
+                        case 3: img = FullGreen; break;
+                        case 4: img = LeftFloat; break;
+                        case 5: img = MiddleFloat; break;
+                        case 6: img = RightFloat; break;
+                    }
+                    if (img != null) g.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize, null);
+                }
+            }
+        }
+    }
+}
