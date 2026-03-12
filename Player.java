@@ -1,103 +1,107 @@
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class Player implements KeyListener, MouseListener {
 
-    // Screen settings
     private final int tileSize = 32;
-    private final int columnCount = 40;
-    private final int rowCount = 23;
-    private final int screenWidth = columnCount * tileSize;
-    private final int screenHeight = rowCount * tileSize;
+    private final int screenWidth = 40 * tileSize;
 
-    // Player position and size
-    private int playerX = 100;
-    private int playerY;
+    // Use doubles for internal math to keep movement smooth
+    private double playerX = 100;
+    private double playerY = 100; 
     private final int playerWidth = 64;
     private final int playerHeight = 64;
 
-    // Movement
-    private int playerSpeed = 3;
-
-    // Jump & gravity
+    private double playerSpeed = 3.0;
     private double velocityY = 0;
     private final double gravity = 0.5;
     private final double jumpStrength = -11;
     
-    // PlayerAnimation
-    private BufferedImage[] idle;
-    private BufferedImage[] walking;
-    private BufferedImage[] jumping;
-    private BufferedImage[] attacking;
-
+    private BufferedImage[] idle, walking, jumping, attacking;
     private BufferedImage[] lastAnimation = null;
     private int currentFrameIndex = 0;
     private long lastFrameTime = 0;
-    private final int frameDuration = 260; // Time in ms per frame
-    private int attackFrameDuration = 160; 
+    private final int frameDuration = 120; 
+    private int attackFrameDuration = 100; 
     
-    // Player state
     private boolean facingRight = true;
     private boolean isMoving = false;
-    private boolean isGrounded;
-    private boolean isAttacking;
-    private int groundLevel;
+    private boolean isGrounded = false;
+    private boolean isAttacking = false;
 
-    // Key movement
     private boolean leftPressed, rightPressed, spacePressed;
 
     public Player() {
-        groundLevel = screenHeight - playerHeight;
-        playerY = groundLevel;
         loadAnimations();
     }
 
-    private void playerControl() {
-        // Process Input and Determine State
-        isMoving = (leftPressed || rightPressed) && isGrounded;
+    // Returns standard Rectangle to fix the "Line 119" error
+    public Rectangle getBounds() {
+        return new Rectangle((int)playerX + 10, (int)playerY, playerWidth - 27, playerHeight);
+    }
+
+    public void playerControl(CheckCollision checker, TileManager tileManager) {
+        // --- 1. Horizontal Movement ---
+        double oldX = playerX;
+        if (leftPressed) playerX -= playerSpeed;
+        if (rightPressed) playerX += playerSpeed;
         
-        if (leftPressed) {
-            playerX -= playerSpeed;
-            facingRight = false;
+        if (checker.isColliding(this, tileManager)) {
+            playerX = oldX; 
         }
-        if (rightPressed) {
-            playerX += playerSpeed;
-            facingRight = true;
+
+        // --- 2. Vertical Movement & Gravity ---
+        if (!isGrounded) {
+            velocityY += gravity; // Only apply gravity if in the air
+        } else {
+            velocityY = 0; // Solidly lock velocity to 0 on ground
         }
-        // Jump
+
+        double oldY = playerY;
+        playerY += velocityY;
+
+        if (checker.isColliding(this, tileManager)) {
+            if (velocityY > 0) { // Landing
+                isGrounded = true;
+                // Snap to top of tile
+                playerY = ((int)(playerY + playerHeight) / tileSize) * tileSize - playerHeight;
+                velocityY = 0;
+            } else if (velocityY < 0) { // Hitting ceiling
+                playerY = oldY;
+                velocityY = 0;
+            }
+        } else {
+            // We aren't colliding, but are we actually in the air?
+            // We check 1 pixel below us to see if there's still a floor.
+            playerY += 1; 
+            if (!checker.isColliding(this, tileManager)) {
+                isGrounded = false;
+            }
+            playerY -= 1; // Move back to original position
+        }
+
+        // --- 3. Jump Logic ---
         if (isGrounded && spacePressed) {
             velocityY = jumpStrength;
             isGrounded = false;
         }
 
-        // Physics & Gravity
-        velocityY += gravity;
-        playerY += velocityY;
+        if (leftPressed) facingRight = false;
+        if (rightPressed) facingRight = true;
+        isMoving = (leftPressed || rightPressed);
 
-        // Ground Collision
-        if (playerY >= groundLevel) {
-            playerY = groundLevel;
-            velocityY = 0;
-            isGrounded = true;
-        } else {
-            isGrounded = false;
-        }
-
-        // Wall Collision
+        // Screen Bounds
         if (playerX < 0) playerX = 0;
         if (playerX + playerWidth > screenWidth) playerX = screenWidth - playerWidth;
     }
 
+    // --- Animation Logic (Unchanged but included for "One File" request) ---
     private void loadAnimations() {
-        // Absolute paths
-        String base = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/playerSprite/";
+        String base = "Assets/playerSprite/";
         idle = loadFrames(base + "playerIdle/", 4, 1);
         walking = loadFrames(base + "playerWalk/", 12, 5);
         jumping = loadFrames(base + "playerJump/", 8, 23);
@@ -106,50 +110,27 @@ public class Player implements KeyListener, MouseListener {
 
     private BufferedImage[] loadFrames(String folderPath, int count, int startIndex) {
         BufferedImage[] frames = new BufferedImage[count];
-        try {
-            for (int i = 0; i < count; i++) {
-                
-                String fileName = folderPath + "AnimationSheet_Character-" + (startIndex + i) + ".png.png";
-                frames[i] = ImageIO.read(new File(fileName));
-            }
-        } catch (IOException e) {
-            System.err.println("Error loading images from: " + folderPath);
-            e.printStackTrace();
+        for (int i = 0; i < count; i++) {
+            String fileName = folderPath + "AnimationSheet_Character-" + (startIndex + i) + ".png.png";
+            try {
+                File f = new File(fileName);
+                if (f.exists()) frames[i] = ImageIO.read(f);
+            } catch (IOException e) { e.printStackTrace(); }
         }
         return frames;
     }
-    
-    public void AnimationStateHandling(){
-        // Animation State Handling
+
+    public void AnimationStateHandling() {
         BufferedImage[] currentAnim = getCurrentAnimation();
+        if (currentAnim == null || currentAnim.length == 0) return;
         long currentTime = System.currentTimeMillis();
-
-        // If animation state changes, reset to frame 0
-        if (currentAnim != lastAnimation) {
-            currentFrameIndex = 0;
-            lastAnimation = currentAnim;
-        }
-
-        // Animation Timing
-        int currentDuration = isAttacking ? attackFrameDuration : frameDuration;
-        if (currentTime - lastFrameTime > currentDuration) {
-            currentFrameIndex++;
-            lastFrameTime = currentTime;
-        }
-        
-        // Animation Frame Looping & Attack Termination
+        if (currentAnim != lastAnimation) { currentFrameIndex = 0; lastAnimation = currentAnim; }
+        int dur = isAttacking ? attackFrameDuration : frameDuration;
+        if (currentTime - lastFrameTime > dur) { currentFrameIndex++; lastFrameTime = currentTime; }
         if (currentFrameIndex >= currentAnim.length) {
-            if (isAttacking) {
-                // Attack finished, reset attack state
-                isAttacking = false;
-                currentFrameIndex = 0;
-            } else if (!isGrounded) {
-                // Hold the last frame of the jump/fall animation
-                currentFrameIndex = currentAnim.length - 1;
-            } else {
-                // Loop walk/idle animations
-                currentFrameIndex = 0;
-            }
+            if (isAttacking) { isAttacking = false; currentFrameIndex = 0; }
+            else if (!isGrounded) currentFrameIndex = currentAnim.length - 1;
+            else currentFrameIndex = 0;
         }
     }
 
@@ -160,64 +141,42 @@ public class Player implements KeyListener, MouseListener {
         return idle;
     }
 
-    public void playerAnimationDraw(Graphics g) {
+    public void draw(Graphics g) {
         BufferedImage[] currentAnim = getCurrentAnimation();
-        if (currentAnim != null && currentAnim.length > 0) {
-            
-            // Safety check for index
-            if (currentFrameIndex >= currentAnim.length) currentFrameIndex = 0;
-            
+        if (currentAnim != null && currentFrameIndex < currentAnim.length) {
             BufferedImage frame = currentAnim[currentFrameIndex];
-            
             if (facingRight) {
-                g.drawImage(frame, playerX, playerY, playerWidth, playerHeight, null);
+                g.drawImage(frame, (int)playerX, (int)playerY, playerWidth, playerHeight, null);
             } else {
-                // Flip image horizontally
-                g.drawImage(frame, playerX + playerWidth, playerY, -playerWidth, playerHeight, null);
+                g.drawImage(frame, (int)playerX + playerWidth, (int)playerY, -playerWidth, playerHeight, null);
             }
         }
     }
 
-    public void update() {
-        playerControl();
+    public void update(CheckCollision checker, TileManager tileManager) {
+        playerControl(checker, tileManager);
         AnimationStateHandling();      
     }
 
-    public void draw(Graphics g) {
-        playerAnimationDraw(g);     
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
-
-    @Override
-    public void keyPressed(KeyEvent e) {
+    // --- Input Listeners ---
+    @Override public void keyTyped(KeyEvent e) {}
+    @Override public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
         if (code == KeyEvent.VK_A) leftPressed = true;
         if (code == KeyEvent.VK_D) rightPressed = true;
         if (code == KeyEvent.VK_SPACE) spacePressed = true;
     }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
+    @Override public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
         if (code == KeyEvent.VK_A) leftPressed = false;
         if (code == KeyEvent.VK_D) rightPressed = false;
         if (code == KeyEvent.VK_SPACE) spacePressed = false;
     }
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        if (e.getButton() == MouseEvent.BUTTON1) {
-            if (!isAttacking) { // Prevent spamming reset on attack
-                isAttacking = true;
-                currentFrameIndex = 0;
-                
-            }
+    @Override public void mouseClicked(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1 && !isAttacking) {
+            isAttacking = true; currentFrameIndex = 0;
         }
     }
-    
-    // Unused mouse methods
     @Override public void mousePressed(MouseEvent e) {}
     @Override public void mouseReleased(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}

@@ -7,12 +7,12 @@ import java.io.IOException;
 public class TileManager {
 
     private TileMap tileMap;
-    private int tileSize = 32;
+    private int tileWidth = 32;
+    private int tileHeight = 32;
     private BufferedImage Dirt, GrassDirt, FullGreen, LeftFloat, MiddleFloat, RightFloat;
 
     public TileManager(TileMap tileMap) {
         this.tileMap = tileMap;
-        // Fixed: Relative path for tiles
         String path = "Assets/tileSet/";
 
         try {
@@ -22,7 +22,18 @@ public class TileManager {
             LeftFloat = ImageIO.read(new File(path + "LeftFloat.png"));
             MiddleFloat = ImageIO.read(new File(path + "MiddleFloat.png"));
             RightFloat = ImageIO.read(new File(path + "RightFloat.png"));
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            System.err.println("Tile images not found in " + path);
+        }
+    }
+
+    // This is the method CheckCollision needs
+    public Rectangle getBound(int row, int col) {
+        return new Rectangle(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+    }
+
+    public TileMap getTileMap() {
+        return tileMap;
     }
 
     public void draw(Graphics g) {
@@ -40,7 +51,8 @@ public class TileManager {
                         case 5: img = MiddleFloat; break;
                         case 6: img = RightFloat; break;
                     }
-                    if (img != null) g.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize, null);
+                    if (img != null)
+                        g.drawImage(img, col * tileWidth, row * tileHeight, tileWidth, tileHeight, null);
                 }
             }
         }

@@ -1,32 +1,23 @@
 import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import java.util.Scanner;
 import javax.swing.*;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 
 public class GamePanel extends JPanel implements Runnable {
 
-    //screenVariable
     private int tileSize = 32;
     private int columnCount = 40;
     private int rowCount = 23;
     private int screenWidth = columnCount * tileSize;
     private int screenHeigth = rowCount * tileSize;
     
-    // Fixed: Relative path for background
-    private ImageIcon backgroundIcon = new ImageIcon("Assets/tempBackGround.jpg");
-    private Image backgroundImage = backgroundIcon.getImage();
-
-    // FPS
+    private Image backgroundImage = new ImageIcon("Assets/tempBackGround.jpg").getImage();
     int FPS = 60; 
 
-    // Components
     Player player1 = new Player();
     TileMap tileMap;
     TileManager tileManager;
+    CheckCollision collisionChecker = new CheckCollision(); // Added
     Thread gameThread;
 
     public GamePanel(){
@@ -36,7 +27,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(player1);
         this.addMouseListener(player1);
         this.setFocusable(true);
-
         loadDefaultMap();
     }
 
@@ -71,33 +61,24 @@ public class GamePanel extends JPanel implements Runnable {
         while (gameThread != null) {
             update();
             repaint();
-
             try {
                 double remainingTime = (nextDrawTime - System.nanoTime()) / 1000000;
                 if (remainingTime < 0) remainingTime = 0;
                 Thread.sleep((long) remainingTime);
                 nextDrawTime += drawInterval;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } 
+            } catch (InterruptedException e) { e.printStackTrace(); } 
         } 
     } 
 
     public void update(){
-        player1.update();
+        // Pass necessary objects for collision check
+        player1.update(collisionChecker, tileManager);
     }
 
     protected void paintComponent(Graphics g){
         super.paintComponent(g);
-        // Draw Background
         g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-        
-        // Draw Tiles
-        if (tileManager != null) {
-            tileManager.draw(g);
-        }
-        
-        // Draw Player
+        if (tileManager != null) tileManager.draw(g);
         player1.draw(g);
         g.dispose();
     }
