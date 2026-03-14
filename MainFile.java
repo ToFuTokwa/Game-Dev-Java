@@ -5,13 +5,13 @@ public class MainFile {
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Shinra Platformer Project"); // Your project title
+        window.setTitle("New Shit");
 
         GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
 
         window.pack();
-        window.setLocationRelativeTo(null); // Centers the window on screen
+        window.setLocationRelativeTo(null); 
         window.setVisible(true);
         
         gamePanel.startGameThread();

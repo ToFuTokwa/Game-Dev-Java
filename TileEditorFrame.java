@@ -1,142 +1,175 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.io.*;
-import java.util.Scanner;
 
 public class TileEditorFrame extends JFrame {
-
-    private int tileSize = 32;
-    private int maxColumns = 40;
-    private int maxRows = 23;
-
-    private TileMap currentMap;
+    private final int tileSize = 32;
+    private final int rows = 23;
+    private final int cols = 40;
+    
+    private LevelManager levelManager;
     private TileManager tileManager;
-    private int selectedTileID = 1; 
-    private boolean isPainting = false;
+    private int selectedTileID = 1;
+    private BufferedImage backgroundImage;
 
     public TileEditorFrame() {
-        setTitle("World Editor");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(maxColumns * tileSize + 220, maxRows * tileSize + 40); 
+        setTitle("SHinRa World Editor");
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setSize(cols * tileSize + 220, rows * tileSize + 100);
         setLayout(null);
 
-        // Initialize with empty grid
-        int[][] emptyGrid = new int[maxRows][maxColumns];
-        currentMap = new TileMap(emptyGrid);
-        tileManager = new TileManager(currentMap);
+        // Initialize LevelManager
+        levelManager = new LevelManager();
+        
+        // Initial setup for Level 0
+        updateEditorLevel(0);
 
-        JPanel drawingCanvas = new JPanel() {
-            @Override
+        // Drawing Area (Canvas)
+        JPanel canvas = new JPanel() {
+            @Override 
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                tileManager.draw(g);
-                // Draw Grid Lines for easier editing
-                g.setColor(new Color(255, 255, 255, 50));
-                for(int i = 0; i <= maxColumns; i++) g.drawLine(i * tileSize, 0, i * tileSize, maxRows * tileSize);
-                for(int i = 0; i <= maxRows; i++) g.drawLine(0, i * tileSize, maxColumns * tileSize, i * tileSize);
+                
+                // 1. Draw Background from LevelManager
+                if (backgroundImage != null) {
+                    g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
+                } else {
+                    g.setColor(Color.BLACK);
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+
+                // 2. Draw Tiles via TileManager
+                if (tileManager != null) {
+                    tileManager.draw(g);
+                }
+
+                // 3. Draw Grid Overlay
+                g.setColor(new Color(255, 255, 255, 40));
+                for (int i = 0; i <= cols; i++) g.drawLine(i * tileSize, 0, i * tileSize, rows * tileSize);
+                for (int i = 0; i <= rows; i++) g.drawLine(0, i * tileSize, cols * tileSize, i * tileSize);
             }
         };
-        drawingCanvas.setBounds(0, 0, maxColumns * tileSize, maxRows * tileSize);
-        drawingCanvas.setBackground(Color.BLACK);
+        
+        canvas.setBounds(10, 10, cols * tileSize, rows * tileSize);
+        canvas.setOpaque(false);
 
-        MouseAdapter canvasMouseControls = new MouseAdapter() {
-            private void updateTileAtMouse(MouseEvent e) {
-                int col = e.getX() / tileSize;
-                int row = e.getY() / tileSize;
-                if (row >= 0 && row < maxRows && col >= 0 && col < maxColumns) {
-                    currentMap.getMap()[row][col] = selectedTileID;
-                    drawingCanvas.repaint();
+        // Mouse Controls for Painting
+        MouseAdapter ma = new MouseAdapter() {
+            private void paint(MouseEvent e) {
+                int c = e.getX() / tileSize;
+                int r = e.getY() / tileSize;
+                if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                    // Right click erases (sets to 0), Left click paints selected ID
+                    levelManager.getCurrentLevel().getMap()[r][c] = 
+                        (SwingUtilities.isRightMouseButton(e)) ? 0 : selectedTileID;
+                    canvas.repaint();
                 }
             }
-            @Override public void mousePressed(MouseEvent e) { isPainting = true; updateTileAtMouse(e); }
-            @Override public void mouseReleased(MouseEvent e) { isPainting = false; }
-            @Override public void mouseDragged(MouseEvent e) { if (isPainting) updateTileAtMouse(e); }
+            @Override public void mousePressed(MouseEvent e) { paint(e); }
+            @Override public void mouseDragged(MouseEvent e) { paint(e); }
         };
+        
+        canvas.addMouseListener(ma);
+        canvas.addMouseMotionListener(ma);
+        add(canvas);
 
-        drawingCanvas.addMouseListener(canvasMouseControls);
-        drawingCanvas.addMouseMotionListener(canvasMouseControls);
-        add(drawingCanvas);
-
-        // Sidebar for Controls
+        // Sidebar Setup
         JPanel sidebar = new JPanel();
-        sidebar.setLayout(new GridLayout(14, 1, 5, 5));
-        sidebar.setBounds(maxColumns * tileSize + 10, 0, 180, maxRows * tileSize);
+        sidebar.setBounds(cols * tileSize + 20, 10, 180, rows * tileSize);
+        sidebar.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
-        String[] tileLabels = {"Air (0)", "Dirt (1)", "Grass (2)", "FullGreen (3)", "LeftFloat (4)", "MiddleFloat (5)", "RightFloat (6)", "Portal (7)"};
-        for (int i = 0; i < tileLabels.length; i++) {
-            final int id = i;
-            JButton tileButton = new JButton(tileLabels[i]);
-            tileButton.addActionListener(e -> selectedTileID = id);
-            sidebar.add(tileButton);
+        // Level Selection Dropdown
+        sidebar.add(new JLabel("Select Level:"));
+        JComboBox<String> levelSelector = new JComboBox<>(levelManager.getLevelNames());
+        levelSelector.setPreferredSize(new Dimension(160, 30));
+        levelSelector.addActionListener(e -> {
+            updateEditorLevel(levelSelector.getSelectedIndex());
+            canvas.repaint();
+        });
+        sidebar.add(levelSelector);
+
+        // Save Button
+        JButton btnSave = new JButton("Save Current Level");
+        btnSave.setPreferredSize(new Dimension(160, 30));
+        btnSave.addActionListener(e -> saveCurrentMap());
+        sidebar.add(btnSave);
+
+        sidebar.add(new JSeparator(JSeparator.HORIZONTAL));
+
+        // Tile Selection Buttons
+        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)"};
+        int[] ids = {0, 1, 2, 3, 7};
+        for (int i = 0; i < tileNames.length; i++) {
+            int id = ids[i];
+            JButton b = new JButton(tileNames[i]);
+            b.setPreferredSize(new Dimension(160, 30));
+            b.addActionListener(e -> selectedTileID = id);
+            sidebar.add(b);
         }
 
-        sidebar.add(new JSeparator());
-
-        // FIX: Added "Clear Map" to start a new level easily
-        JButton clearButton = new JButton("Clear / New Map");
-        clearButton.addActionListener(e -> {
-            int[][] emptyGrid2 = new int[maxRows][maxColumns];
-            currentMap = new TileMap(emptyGrid2);
-            tileManager.setTileMap(currentMap);
-            drawingCanvas.repaint();
-        });
-        sidebar.add(clearButton);
-
-        JButton saveButton = new JButton("Save Level"); 
-        saveButton.addActionListener(e -> saveMapData());
-        
-        JButton loadButton = new JButton("Load Level"); 
-        loadButton.addActionListener(e -> { loadMapData(); drawingCanvas.repaint(); });
-
-        sidebar.add(saveButton);
-        sidebar.add(loadButton);
         add(sidebar);
+        
+        // Animation Timer (Keeps portal spinning)
+        new Timer(150, e -> canvas.repaint()).start();
 
-        new Timer(16, e -> drawingCanvas.repaint()).start();
+        setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    private void saveMapData() {
-        // You can type level1, level2, or level3 here to create multiple files
-        String name = JOptionPane.showInputDialog(this, "Enter level name (e.g., level1):", "level1");
-        if (name == null || name.isEmpty()) return;
+    private void updateEditorLevel(int index) {
+        levelManager.setLevel(index);
+        
+        // Update TileManager reference
+        if (tileManager == null) {
+            tileManager = new TileManager(levelManager.getCurrentLevel());
+        } else {
+            tileManager.setTileMap(levelManager.getCurrentLevel());
+        }
 
+        // Load background based on LevelManager path
+        try {
+            String path = levelManager.getCurrentBackgroundPath();
+            File f = new File(path);
+            if (f.exists()) {
+                backgroundImage = ImageIO.read(f);
+            } else {
+                backgroundImage = null;
+                System.out.println("Background image not found: " + path);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveCurrentMap() {
+        String name = JOptionPane.showInputDialog(this, "Save file name (e.g., level1):");
+        
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+
+        // Ensure levels directory exists
         File dir = new File("levels");
         if (!dir.exists()) dir.mkdir();
 
-        try (PrintWriter writer = new PrintWriter(new File("levels/" + name + ".txt"))) {
-            int[][] grid = currentMap.getMap();
-            for (int r = 0; r < maxRows; r++) {
-                for (int c = 0; c < maxColumns; c++) {
-                    // Saves with commas to match your TileMap reader
-                    writer.print(grid[r][c] + (c < maxColumns - 1 ? "," : ""));
+        try (PrintWriter pw = new PrintWriter(new File("levels/" + name + ".txt"))) {
+            int[][] grid = levelManager.getCurrentLevel().getMap();
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    pw.print(grid[r][c] + (c < cols - 1 ? "," : ""));
                 }
-                writer.println();
+                pw.println();
             }
-            System.out.println("Saved successfully: levels/" + name + ".txt");
-        } catch (Exception ex) { ex.printStackTrace(); }
-    }
-
-    private void loadMapData() {
-        String name = JOptionPane.showInputDialog(this, "Load level name:", "level1");
-        if (name == null || name.isEmpty()) return;
-        File file = new File("levels/" + name + ".txt");
-        if (!file.exists()) {
-            JOptionPane.showMessageDialog(this, "File not found!");
-            return;
+            JOptionPane.showMessageDialog(this, "Level saved: levels/" + name + ".txt");
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error saving: " + e.getMessage());
         }
-        try (Scanner reader = new Scanner(file)) {
-            int[][] grid = currentMap.getMap();
-            int r = 0;
-            while (reader.hasNextLine() && r < maxRows) {
-                String[] values = reader.nextLine().split(",");
-                for (int c = 0; c < values.length && c < maxColumns; c++)
-                    grid[r][c] = Integer.parseInt(values[c].trim());
-                r++;
-            }
-        } catch (Exception ex) { ex.printStackTrace(); }
     }
 
-    public static void main(String[] args) { new TileEditorFrame(); }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(TileEditorFrame::new);
+    }
 }

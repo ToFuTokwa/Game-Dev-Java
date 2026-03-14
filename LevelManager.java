@@ -1,28 +1,18 @@
 public class LevelManager {
-    private TileMap[] levels;
-    private String[] backgrounds;
-    private String[] levelNames; 
-    private int currentLevel = 0;
+    private TileMap[] levels = new TileMap[3];
+    private String[] backgrounds = new String[3];
+    private String[] names = {"Home", "Mob Cave", "Mine Shaft"};
+    private int currentIndex = 0;
 
     public LevelManager() {
-        int total = 3; 
-        levels = new TileMap[total];
-        backgrounds = new String[total];
-        levelNames = new String[total];
-
-        // Level Names - Change these to update the menu!
-        levelNames[0] = "Sector 7 Slums";
-        levelNames[1] = "Mako Reactor 1";
-        levelNames[2] = "Shinra HQ";
-
-        for (int i = 0; i < total; i++) {
+        for (int i = 0; i < 3; i++) {
             levels[i] = new TileMap("levels/level" + (i + 1) + ".txt");
-            backgrounds[i] = "Assets/backgrounds/bg_level" + (i + 1) + ".jpg";
+            backgrounds[i] = "Assets/Mocap" + (i + 1) + ".png";
         }
     }
 
-    public void setLevel(int i) { if (i >= 0 && i < levels.length) currentLevel = i; }
-    public String[] getLevelNames() { return levelNames; }
-    public TileMap getCurrentLevel() { return levels[currentLevel]; }
-    public String getCurrentBackgroundPath() { return backgrounds[currentLevel]; }
+    public void setLevel(int i) { if (i >= 0 && i < 3) currentIndex = i; }
+    public String[] getLevelNames() { return names; }
+    public TileMap getCurrentLevel() { return levels[currentIndex]; }
+    public String getCurrentBackgroundPath() { return backgrounds[currentIndex]; }
 }

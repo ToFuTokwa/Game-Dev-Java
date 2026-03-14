@@ -2,40 +2,26 @@ import java.io.*;
 import java.util.*;
 
 public class TileMap {
-    private int[][] mapGrid;
+    private int[][] grid;
 
-    public TileMap(int[][] initialGrid) {
-        this.mapGrid = initialGrid;
-    }
-
-    public TileMap(String filePath) {
-        List<int[]> rowList = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+    public TileMap(int[][] initial) { this.grid = initial; }
+    public TileMap(String path) {
+        List<int[]> rows = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue; 
-
-                // Splits the text file by commas to get individual tile IDs
-                String[] values = line.split(",");
-                int[] row = new int[values.length];
-                for (int i = 0; i < values.length; i++) {
-                    row[i] = Integer.parseInt(values[i].trim());
-                }
-                rowList.add(row);
+            while ((line = br.readLine()) != null) {
+                String[] vals = line.trim().split(",");
+                int[] row = new int[vals.length];
+                for (int i = 0; i < vals.length; i++) row[i] = Integer.parseInt(vals[i].trim());
+                rows.add(row);
             }
-        } catch (Exception e) {
-            System.err.println("Error loading map: " + e.getMessage());
-        }
-        mapGrid = rowList.toArray(new int[rowList.size()][]);
+        } catch (Exception e) { System.err.println("Load error: " + path); }
+        grid = rows.toArray(new int[rows.size()][]);
     }
 
-    public int[][] getMap() { return mapGrid; }
-    public int getTile(int row, int col) {
-        if (row < 0 || row >= mapGrid.length || col < 0 || col >= mapGrid[0].length) return -1;
-        return mapGrid[row][col];
+    public int[][] getMap() { return grid; }
+    public int getTile(int r, int c) {
+        if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length) return -1;
+        return grid[r][c];
     }
-    public void setTile(int row, int col, int id) { mapGrid[row][col] = id; }
-    public int getRows() { return mapGrid.length; }
-    public int getCols() { return mapGrid[0].length; }
 }

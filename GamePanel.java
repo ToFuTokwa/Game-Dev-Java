@@ -17,10 +17,10 @@ public class GamePanel extends JPanel implements Runnable {
         this.addMouseListener(player);
         
         tileManager = new TileManager(levelManager.getCurrentLevel());
-        refreshVisuals();
+        updateLevelVisuals();
     }
 
-    private void refreshVisuals() {
+    private void updateLevelVisuals() {
         String bgPath = levelManager.getCurrentBackgroundPath();
         if (new File(bgPath).exists()) {
             this.currentBackground = new ImageIcon(bgPath).getImage();
@@ -35,31 +35,32 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     public void run() {
         while (gameThread != null) {
-            updateGame();
+            update();
             repaint();
             try { Thread.sleep(16); } catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
 
-    private void updateGame() {
+    private void update() {
         player.update(collisionChecker, tileManager);
 
-        if (player.isInteractPressed()) { // Fixed: method name from Player.java
-            checkPortalInteraction();
+        if (player.isInteractPressed()) {
+            checkPortalContact();
         }
     }
 
-    private void checkPortalInteraction() {
-        Rectangle pBounds = player.getHitbox(); // Fixed: method name from Player.java
-        int row = pBounds.y / 32;
-        int col = pBounds.x / 32;
+    private void checkPortalContact() {
+        Rectangle hitbox = player.getHitbox();
+        int row = hitbox.y / 32;
+        int col = hitbox.x / 32;
 
+        // Check nearby tiles for a portal
         for (int r = row - 1; r <= row + 1; r++) {
             for (int c = col - 1; c <= col + 1; c++) {
                 if (tileManager.isPortal(r, c)) {
                     Rectangle portalArea = tileManager.getPortalBounds(r, c);
-                    if (pBounds.intersects(portalArea)) {
-                        handleLevelTransition();
+                    if (hitbox.intersects(portalArea)) {
+                        promptLevelChange();
                         return;
                     }
                 }
@@ -67,16 +68,16 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private void handleLevelTransition() {
+    private void promptLevelChange() {
         player.resetInputs();
-        String[] levelChoices = levelManager.getLevelNames();
-        int selection = JOptionPane.showOptionDialog(this, "Select Level", "Portal Travel",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, levelChoices, levelChoices[0]);
+        String[] options = levelManager.getLevelNames();
+        int choice = JOptionPane.showOptionDialog(this, "Where would you like to travel?", "Portal Travel",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
 
-        if (selection != -1) {
-            levelManager.setLevel(selection);
+        if (choice != -1) {
+            levelManager.setLevel(choice);
             tileManager.setTileMap(levelManager.getCurrentLevel());
-            refreshVisuals();
+            updateLevelVisuals();
             player.setPosition(100, 100);
         }
     }
@@ -84,13 +85,8 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // 1. Draw Background
         if (currentBackground != null) g.drawImage(currentBackground, 0, 0, 1280, 736, null);
-        
-        // 2. Draw Tiles
         tileManager.draw(g);
-        
-        // 3. Draw Player (FIX: Added this call so the sprite actually shows up)
         player.draw(g);
     }
 }
