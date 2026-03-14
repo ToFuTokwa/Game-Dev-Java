@@ -2,58 +2,40 @@ import java.io.*;
 import java.util.*;
 
 public class TileMap {
-
-    private int[][] grid;
+    private int[][] mapGrid;
 
     public TileMap(int[][] initialGrid) {
-        if (initialGrid == null || initialGrid.length == 0 || initialGrid[0].length == 0) {
-            throw new IllegalArgumentException("Grid cannot be null or empty");
-        }
-        this.grid = initialGrid;
+        this.mapGrid = initialGrid;
     }
 
     public TileMap(String filePath) {
-        List<int[]> rows = new ArrayList<>();
-
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        List<int[]> rowList = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
-            while ((line = br.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 line = line.trim();
-                if(line.isEmpty()) continue; 
+                if (line.isEmpty()) continue; 
 
-                // CHANGED: Split by comma to match TileEditorFrame output
-                String[] numbers = line.split(",");
-                int[] row = new int[numbers.length];
-
-                for (int i = 0; i < numbers.length; i++) {
-                    row[i] = Integer.parseInt(numbers[i].trim());
+                // Splits the text file by commas to get individual tile IDs
+                String[] values = line.split(",");
+                int[] row = new int[values.length];
+                for (int i = 0; i < values.length; i++) {
+                    row[i] = Integer.parseInt(values[i].trim());
                 }
-                rows.add(row);
+                rowList.add(row);
             }
-        } catch (IOException e) {
-            System.err.println("Error reading tile map file: " + e.getMessage());
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid number in tile map file: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error loading map: " + e.getMessage());
         }
-
-        if (rows.isEmpty()) {
-            throw new IllegalArgumentException("Tile map file is empty or invalid: " + filePath);
-        }
-        grid = rows.toArray(new int[rows.size()][]);
+        mapGrid = rowList.toArray(new int[rowList.size()][]);
     }
 
-    public int[][] getMap() { return grid; }
+    public int[][] getMap() { return mapGrid; }
     public int getTile(int row, int col) {
-        if (!isWithinBounds(row, col)) return -1;
-        return grid[row][col];
+        if (row < 0 || row >= mapGrid.length || col < 0 || col >= mapGrid[0].length) return -1;
+        return mapGrid[row][col];
     }
-    public void setTile(int row, int col, int tileID) {
-        if (!isWithinBounds(row, col)) return;
-        grid[row][col] = tileID;
-    }
-    public int getRows() { return grid.length; }
-    public int getCols() { return grid[0].length; }
-    private boolean isWithinBounds(int row, int col) {
-        return row >= 0 && row < grid.length && col >= 0 && col < grid[0].length;
-    }
+    public void setTile(int row, int col, int id) { mapGrid[row][col] = id; }
+    public int getRows() { return mapGrid.length; }
+    public int getCols() { return mapGrid[0].length; }
 }

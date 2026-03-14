@@ -1,32 +1,30 @@
 import java.awt.*;
 import javax.swing.*;
+import java.io.File;
 
 public class GamePanel extends JPanel implements Runnable {
-
-    private final int tileSize = 32;
-    private final int maxColumns = 40;
-    private final int maxRows = 23;
-    private final int screenWidth = maxColumns * tileSize;
-    private final int screenHeight = maxRows * tileSize;
-
-    private Image backgroundImage = new ImageIcon("Assets/tempBackGround.jpg").getImage();
-    private final int framesPerSecond = 60;
-
-    private Player player1 = new Player();
+    private Player player = new Player();
     private LevelManager levelManager = new LevelManager();
     private TileManager tileManager;
     private CheckCollision collisionChecker = new CheckCollision();
+    private Image currentBackground;
     private Thread gameThread;
 
     public GamePanel() {
-        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
-        this.setBackground(Color.black);
-        this.setDoubleBuffered(true);
-        this.addKeyListener(player1);
-        this.addMouseListener(player1);
+        this.setPreferredSize(new Dimension(1280, 736));
         this.setFocusable(true);
-
+        this.addKeyListener(player);
+        this.addMouseListener(player);
+        
         tileManager = new TileManager(levelManager.getCurrentLevel());
+        refreshVisuals();
+    }
+
+    private void refreshVisuals() {
+        String bgPath = levelManager.getCurrentBackgroundPath();
+        if (new File(bgPath).exists()) {
+            this.currentBackground = new ImageIcon(bgPath).getImage();
+        }
     }
 
     public void startGameThread() {
@@ -36,61 +34,63 @@ public class GamePanel extends JPanel implements Runnable {
 
     @Override
     public void run() {
-        double drawInterval = 1000000000.0 / framesPerSecond;
-        double nextDrawTime = System.nanoTime() + drawInterval;
-
         while (gameThread != null) {
-            update();
+            updateGame();
             repaint();
-            try {
-                double remainingTime = (nextDrawTime - System.nanoTime()) / 1000000.0;
-                if (remainingTime < 0) remainingTime = 0;
-                Thread.sleep((long) remainingTime);
-                nextDrawTime += drawInterval;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            try { Thread.sleep(16); } catch (InterruptedException e) { e.printStackTrace(); }
+        }
+    }
+
+    private void updateGame() {
+        player.update(collisionChecker, tileManager);
+
+        if (player.isInteractPressed()) { // Fixed: method name from Player.java
+            checkPortalInteraction();
+        }
+    }
+
+    private void checkPortalInteraction() {
+        Rectangle pBounds = player.getHitbox(); // Fixed: method name from Player.java
+        int row = pBounds.y / 32;
+        int col = pBounds.x / 32;
+
+        for (int r = row - 1; r <= row + 1; r++) {
+            for (int c = col - 1; c <= col + 1; c++) {
+                if (tileManager.isPortal(r, c)) {
+                    Rectangle portalArea = tileManager.getPortalBounds(r, c);
+                    if (pBounds.intersects(portalArea)) {
+                        handleLevelTransition();
+                        return;
+                    }
+                }
             }
         }
     }
 
-    private void update() {
-        player1.update(collisionChecker, tileManager);
+    private void handleLevelTransition() {
+        player.resetInputs();
+        String[] levelChoices = levelManager.getLevelNames();
+        int selection = JOptionPane.showOptionDialog(this, "Select Level", "Portal Travel",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, levelChoices, levelChoices[0]);
 
-        // --- PORTAL INTERACTION LOGIC ---
-        if (player1.isInteractPressed()) {
-            Rectangle hit = player1.getBounds();
-            int tw = tileManager.getTileWidth();
-            int th = tileManager.getTileHeight();
-            
-            int colStart = hit.x / tw;
-            int colEnd = (hit.x + hit.width) / tw;
-            int rowStart = hit.y / th;
-            int rowEnd = (hit.y + hit.height) / th;
-
-            boolean foundPortal = false;
-            for (int r = rowStart; r <= rowEnd; r++) {
-                for (int c = colStart; c <= colEnd; c++) {
-                    if (tileManager.isPortal(r, c)) {
-                        foundPortal = true;
-                        break;
-                    }
-                }
-                if (foundPortal) break;
-            }
-
-            if (foundPortal) {
-                levelManager.loadNextLevel();
-                tileManager.setTileMap(levelManager.getCurrentLevel());
-                player1.setPosition(100, 100); 
-            }
+        if (selection != -1) {
+            levelManager.setLevel(selection);
+            tileManager.setTileMap(levelManager.getCurrentLevel());
+            refreshVisuals();
+            player.setPosition(100, 100);
         }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-        if (tileManager != null) tileManager.draw(g);
-        player1.draw(g);
+        // 1. Draw Background
+        if (currentBackground != null) g.drawImage(currentBackground, 0, 0, 1280, 736, null);
+        
+        // 2. Draw Tiles
+        tileManager.draw(g);
+        
+        // 3. Draw Player (FIX: Added this call so the sprite actually shows up)
+        player.draw(g);
     }
 }

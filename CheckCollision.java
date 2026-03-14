@@ -1,38 +1,26 @@
 import java.awt.Rectangle;
 
 public class CheckCollision {
+    private final int TILE_SIZE = 32;
 
     public boolean isColliding(Player player, TileManager tileManager) {
-        if (tileManager == null || tileManager.getTileMap() == null) return false;
+        Rectangle hitbox = player.getHitbox(); // References the updated method in Player.java
+        int[][] mapGrid = tileManager.getTileMap().getMap();
+        
+        int startRow = hitbox.y / TILE_SIZE;
+        int endRow = (hitbox.y + hitbox.height) / TILE_SIZE;
+        int startCol = hitbox.x / TILE_SIZE;
+        int endCol = (hitbox.x + hitbox.width) / TILE_SIZE;
 
-        Rectangle playerHitbox = player.getBounds();
-        int[][] worldGrid = tileManager.getTileMap().getMap();
-        int tw = tileManager.getTileWidth();
-        int th = tileManager.getTileHeight();
-
-        // Calculate which tiles the player is touching
-        int columnStart = playerHitbox.x / tw;
-        int columnEnd = (playerHitbox.x + playerHitbox.width) / tw;
-        int rowStart = playerHitbox.y / th;
-        int rowEnd = (playerHitbox.y + playerHitbox.height) / th;
-
-        for (int row = rowStart; row <= rowEnd; row++) {
-            for (int col = columnStart; col <= columnEnd; col++) {
-                // Bounds check
-                if (row >= 0 && row < tileManager.getTileMap().getRows() &&
-                    col >= 0 && col < tileManager.getTileMap().getCols()) {
-
-                    int tileType = worldGrid[row][col];
-
-                    // Portal (7) and Air (0) are not solid
-                    if (tileType == 0 || tileType == 7) {
-                        continue;
-                    }
-
-                    // Check actual intersection
-                    Rectangle tileBounds = tileManager.getBound(row, col);
-                    if (playerHitbox.intersects(tileBounds)) {
-                        return true;
+        for (int r = startRow; r <= endRow; r++) {
+            for (int c = startCol; c <= endCol; c++) {
+                if (r >= 0 && r < mapGrid.length && c >= 0 && c < mapGrid[0].length) {
+                    int tileID = mapGrid[r][c];
+                    // 0 is air, 7 is portal (walk-through)
+                    if (tileID != 0 && tileID != 7) {
+                        if (hitbox.intersects(tileManager.getBound(r, c))) {
+                            return true;
+                        }
                     }
                 }
             }

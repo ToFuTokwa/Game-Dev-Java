@@ -1,18 +1,18 @@
 import javax.swing.*;
 
 public class MainFile {
-    public static void main(String[] args){
-        JFrame gameWindow = new JFrame();
-        gameWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        gameWindow.setResizable(false);
-        gameWindow.setTitle("My 2D Game");
+    public static void main(String[] args) {
+        JFrame window = new JFrame();
+        window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        window.setResizable(false);
+        window.setTitle("Shinra Platformer Project"); // Your project title
 
         GamePanel gamePanel = new GamePanel();
-        gameWindow.add(gamePanel);
+        window.add(gamePanel);
 
-        gameWindow.pack();
-        gameWindow.setLocationRelativeTo(null);
-        gameWindow.setVisible(true);
+        window.pack();
+        window.setLocationRelativeTo(null); // Centers the window on screen
+        window.setVisible(true);
         
         gamePanel.startGameThread();
     }

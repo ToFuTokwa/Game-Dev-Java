@@ -7,9 +7,6 @@ import javax.imageio.ImageIO;
 
 public class Player implements KeyListener, MouseListener {
 
-    private final int tileSize = 32;
-    private final int screenWidth = 40 * tileSize;
-
     private double worldX = 100;
     private double worldY = 100; 
     private final int playerWidth = 64;
@@ -24,8 +21,6 @@ public class Player implements KeyListener, MouseListener {
     private BufferedImage[] currentlyPlayingAnim = null;
     private int animationFrameIndex = 0;
     private long lastFrameTime = 0;
-    private final int normalFrameDelay = 120; 
-    private final int attackFrameDelay = 100; 
 
     private boolean isFacingRight = true;
     private boolean isCurrentlyMoving = false;
@@ -38,66 +33,12 @@ public class Player implements KeyListener, MouseListener {
         loadAnimations();
     }
 
-    // Adjusted Hitbox to be slightly smaller than the sprite for smoother movement
-    public Rectangle getBounds() {
-        return new Rectangle((int)worldX + 18, (int)worldY + 12, playerWidth - 36, playerHeight - 14);
+    // FIX: Renamed from getBounds to getHitbox to match CheckCollision usage
+    public Rectangle getHitbox() {
+        return new Rectangle((int)worldX + 20, (int)worldY + 10, 24, 50);
     }
 
-    public void handleMovement(CheckCollision collisionChecker, TileManager tileManager) {
-        // --- HORIZONTAL MOVEMENT ---
-        double dx = 0;
-        if (isLeftPressed) dx -= movementSpeed;
-        if (isRightPressed) dx += movementSpeed;
-
-        worldX += dx;
-        if (collisionChecker.isColliding(this, tileManager)) {
-            worldX -= dx; // Push back if hitting a wall
-        }
-
-        // --- VERTICAL MOVEMENT ---
-        if (!isOnGround) {
-            verticalSpeed += gravityForce;
-        } else {
-            verticalSpeed = 0;
-        }
-
-        worldY += verticalSpeed;
-        
-        if (collisionChecker.isColliding(this, tileManager)) {
-            if (verticalSpeed > 0) { // Falling/Landing
-                isOnGround = true;
-                // Snap to top of the tile to prevent getting stuck
-                worldY = (Math.floor((worldY + playerHeight - 2) / tileSize) * tileSize) - (playerHeight - 2);
-                verticalSpeed = 0;
-            } else if (verticalSpeed < 0) { // Hitting ceiling
-                worldY -= verticalSpeed;
-                verticalSpeed = 0;
-            }
-        } else {
-            // Check if there is still ground beneath us
-            worldY += 1;
-            if (!collisionChecker.isColliding(this, tileManager)) {
-                isOnGround = false;
-            }
-            worldY -= 1;
-        }
-
-        if (isOnGround && isJumpPressed) {
-            verticalSpeed = jumpPower;
-            isOnGround = false;
-        }
-
-        // Direction and State
-        if (dx < 0) isFacingRight = false;
-        else if (dx > 0) isFacingRight = true;
-        isCurrentlyMoving = (dx != 0);
-
-        // Screen Boundaries
-        if (worldX < 0) worldX = 0;
-        if (worldX + playerWidth > screenWidth) worldX = screenWidth - playerWidth;
-    }
-
-    private void loadAnimations() {
+    public void loadAnimations() {
         String path = "Assets/playerSprite/";
         idleAnim = loadFrames(path + "playerIdle/", 4, 1);
         walkingAnim = loadFrames(path + "playerWalk/", 12, 5);
@@ -121,60 +62,104 @@ public class Player implements KeyListener, MouseListener {
         return frames;
     }
 
-    public void updateAnimationState() {
-        BufferedImage[] currentFrames = determineAnimation();
-        if (currentFrames == null || currentFrames.length == 0) return;
+    public void update(CheckCollision collisionChecker, TileManager tileManager) {
+        double dx = 0;
+        if (isLeftPressed) dx -= movementSpeed;
+        if (isRightPressed) dx += movementSpeed;
 
-        long currentTime = System.currentTimeMillis();
-        if (currentFrames != currentlyPlayingAnim) {
-            animationFrameIndex = 0;
-            currentlyPlayingAnim = currentFrames;
+        // X Movement and Collision
+        worldX += dx;
+        if (collisionChecker.isColliding(this, tileManager)) {
+            worldX -= dx;
         }
 
-        int delay = isAttacking ? attackFrameDelay : normalFrameDelay;
+        // Y Movement and Gravity
+        if (!isOnGround) verticalSpeed += gravityForce;
+        else verticalSpeed = 0;
+
+        worldY += verticalSpeed;
+        if (collisionChecker.isColliding(this, tileManager)) {
+            if (verticalSpeed > 0) { // Landing on ground
+                isOnGround = true;
+                // Snap player to the top of the tile to prevent vibrating/falling through
+                worldY = (Math.floor((getHitbox().y + getHitbox().height) / 32) * 32) - 60;
+                verticalSpeed = 0;
+            } else { // Hitting ceiling
+                worldY -= verticalSpeed;
+                verticalSpeed = 0;
+            }
+        } else {
+            // Check if there is still ground beneath us
+            worldY += 1;
+            if (!collisionChecker.isColliding(this, tileManager)) isOnGround = false;
+            worldY -= 1;
+        }
+
+        if (isOnGround && isJumpPressed) {
+            verticalSpeed = jumpPower;
+            isOnGround = false;
+        }
+
+        if (dx != 0) isFacingRight = dx > 0;
+        isCurrentlyMoving = (dx != 0);
+
+        updateAnimationState();
+    }
+
+    private void updateAnimationState() {
+        BufferedImage[] next = isAttacking ? attackingAnim : !isOnGround ? jumpingAnim : isCurrentlyMoving ? walkingAnim : idleAnim;
+        
+        if (next == null || next.length == 0) return; // FIX: Added safety check
+        if (next != currentlyPlayingAnim) {
+            currentlyPlayingAnim = next;
+            animationFrameIndex = 0;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        int delay = isAttacking ? 100 : 120;
+
         if (currentTime - lastFrameTime > delay) {
             animationFrameIndex++;
             lastFrameTime = currentTime;
         }
 
-        if (animationFrameIndex >= currentFrames.length) {
+        if (animationFrameIndex >= currentlyPlayingAnim.length) {
             if (isAttacking) {
                 isAttacking = false;
                 animationFrameIndex = 0;
             } else if (!isOnGround) {
-                animationFrameIndex = currentFrames.length - 1; 
+                animationFrameIndex = currentlyPlayingAnim.length - 1;
             } else {
                 animationFrameIndex = 0;
             }
         }
     }
 
-    private BufferedImage[] determineAnimation() {
-        if (isAttacking) return attackingAnim;
-        if (!isOnGround) return jumpingAnim;
-        if (isCurrentlyMoving) return walkingAnim;
-        return idleAnim;
-    }
-
     public void draw(Graphics g) {
-        BufferedImage[] currentFrames = currentlyPlayingAnim;
-        if (currentFrames != null && animationFrameIndex < currentFrames.length) {
-            BufferedImage frame = currentFrames[animationFrameIndex];
-            if (isFacingRight) {
-                g.drawImage(frame, (int)worldX, (int)worldY, playerWidth, playerHeight, null);
-            } else {
-                g.drawImage(frame, (int)worldX + playerWidth, (int)worldY, -playerWidth, playerHeight, null);
+        if (currentlyPlayingAnim != null && animationFrameIndex < currentlyPlayingAnim.length) {
+            BufferedImage frame = currentlyPlayingAnim[animationFrameIndex];
+            if (frame != null) { // FIX: Ensure frame exists before drawing
+                if (isFacingRight) {
+                    g.drawImage(frame, (int)worldX, (int)worldY, playerWidth, playerHeight, null);
+                } else {
+                    g.drawImage(frame, (int)worldX + playerWidth, (int)worldY, -playerWidth, playerHeight, null);
+                }
             }
         }
     }
 
-    public void update(CheckCollision collisionChecker, TileManager tileManager) {
-        handleMovement(collisionChecker, tileManager);
-        updateAnimationState();
+    public void resetInputs() {
+        isLeftPressed = isRightPressed = isJumpPressed = isInteractPressed = false;
     }
 
-    @Override
-    public void keyPressed(KeyEvent e) {
+    public void setPosition(double x, double y) {
+        this.worldX = x;
+        this.worldY = y;
+    }
+
+    public boolean isInteractPressed() { return isInteractPressed; }
+
+    @Override public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
         if (code == KeyEvent.VK_A) isLeftPressed = true;
         if (code == KeyEvent.VK_D) isRightPressed = true;
@@ -182,8 +167,7 @@ public class Player implements KeyListener, MouseListener {
         if (code == KeyEvent.VK_E) isInteractPressed = true;
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
+    @Override public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
         if (code == KeyEvent.VK_A) isLeftPressed = false;
         if (code == KeyEvent.VK_D) isRightPressed = false;
@@ -202,7 +186,4 @@ public class Player implements KeyListener, MouseListener {
     @Override public void mouseReleased(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}
     @Override public void mouseExited(MouseEvent e) {}
-
-    public boolean isInteractPressed() { return isInteractPressed; }
-    public void setPosition(double x, double y) { this.worldX = x; this.worldY = y; }
 }
