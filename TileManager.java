@@ -9,18 +9,26 @@ public class TileManager {
     private TileMap tileMap;
     private int tileWidth = 32;
     private int tileHeight = 32;
+
     private BufferedImage[] portalFrame; 
     private int animationFrame = 0;
     private long lastAnimationTime = 0;
-    private final int animationDelay = 200; 
+    private final int animationDelay = 200;
+
+    // Tile images
     private BufferedImage Dirt, GrassDirt, FullGreen, LeftFloat, MiddleFloat, RightFloat;
-    
+
+    // -----------------------
+    // Constructor
+    // -----------------------
     public TileManager(TileMap tileMap) {
         this.tileMap = tileMap;
-        // Using relative paths so it works on any computer/environment
-        String portalPath = "Assets/portal/";
-        String path = "Assets/tileSet/";
+        loadTileImages();
+        loadPortalImages();
+    }
 
+    private void loadTileImages() {
+        String path = "Assets/tileSet/";
         try {
             Dirt = ImageIO.read(new File(path + "Dirt.png"));
             GrassDirt = ImageIO.read(new File(path + "GrassDirt.png"));
@@ -28,17 +36,26 @@ public class TileManager {
             LeftFloat = ImageIO.read(new File(path + "LeftFloat.png"));
             MiddleFloat = ImageIO.read(new File(path + "MiddleFloat.png"));
             RightFloat = ImageIO.read(new File(path + "RightFloat.png"));
-
-            portalFrame = new BufferedImage[6];
-            for (int i = 0; i < 6; i++) {
-                portalFrame[i] = ImageIO.read(new File(portalPath + "Dimensional_Portal-" + (i + 1) + ".png"));
-            }
-
         } catch (IOException e) {
             System.err.println("Error loading tile images: " + e.getMessage());
         }
     }
 
+    private void loadPortalImages() {
+        String portalPath = "Assets/portal/";
+        portalFrame = new BufferedImage[6];
+        try {
+            for (int i = 0; i < 6; i++) {
+                portalFrame[i] = ImageIO.read(new File(portalPath + "Dimensional_Portal-" + (i + 1) + ".png"));
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading portal images: " + e.getMessage());
+        }
+    }
+
+    // -----------------------
+    // Update portal animation
+    // -----------------------
     public void updateAnimation() {
         long now = System.currentTimeMillis();
         if (now - lastAnimationTime > animationDelay) {
@@ -50,17 +67,11 @@ public class TileManager {
         }
     }
 
-    public Rectangle getBound(int row, int col) {
-        return new Rectangle(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
-    }
-
-    public TileMap getTileMap() {
-        return tileMap;
-    }
-
+    // -----------------------
+    // Draw tiles
+    // -----------------------
     public void draw(Graphics g) {
-        updateAnimation(); // Updates the frame index for animated tiles
-        
+        updateAnimation();
         int[][] map = tileMap.getMap();
         for (int row = 0; row < tileMap.getRows(); row++) {
             for (int col = 0; col < tileMap.getCols(); col++) {
@@ -74,7 +85,7 @@ public class TileManager {
                         case 4: img = LeftFloat; break;
                         case 5: img = MiddleFloat; break;
                         case 6: img = RightFloat; break;
-                        case 7: 
+                        case 7:
                             if (portalFrame != null && portalFrame.length > 0) {
                                 img = portalFrame[animationFrame];
                             }
@@ -83,11 +94,41 @@ public class TileManager {
                     if (img != null)
                         g.drawImage(img, col * tileWidth, row * tileHeight, tileWidth, tileHeight, null);
                 }
-                
-                // Draw tile boundaries for the editor/debugging
+
+                // Optional: tile boundaries for debugging
                 g.setColor(new Color(255, 0, 0, 50));
                 g.drawRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
             }
         }
+    }
+
+    // -----------------------
+    // Get tile bounding rectangle
+    // -----------------------
+    public Rectangle getBound(int row, int col) {
+        return new Rectangle(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+    }
+
+    // -----------------------
+    // Helper: is this tile a portal?
+    // -----------------------
+    public boolean isPortal(int row, int col) {
+        if (row < 0 || row >= tileMap.getRows() || col < 0 || col >= tileMap.getCols()) return false;
+        return tileMap.getTile(row, col) == 7;
+    }
+
+    // -----------------------
+    // Getters for player & collision
+    // -----------------------
+    public int getTileWidth() { return tileWidth; }
+    public int getTileHeight() { return tileHeight; }
+
+    public TileMap getTileMap() { return tileMap; }
+
+    // -----------------------
+    // Change current TileMap (for level switching)
+    // -----------------------
+    public void setTileMap(TileMap newMap) {
+        this.tileMap = newMap;
     }
 }

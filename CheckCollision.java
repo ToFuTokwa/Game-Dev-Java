@@ -5,26 +5,34 @@ public class CheckCollision {
     public boolean isColliding(Player player, TileManager tileManager) {
         if (tileManager == null || tileManager.getTileMap() == null) return false;
 
-        Rectangle pRect = player.getBounds();
-        int[][] map = tileManager.getTileMap().getMap();
-        
-        // Optimization: Only check tiles in the player's immediate area
-        int startCol = pRect.x / 32;
-        int endCol = (pRect.x + pRect.width) / 32;
-        int startRow = pRect.y / 32;
-        int endRow = (pRect.y + pRect.height) / 32;
+        Rectangle playerHitbox = player.getBounds();
+        int[][] worldGrid = tileManager.getTileMap().getMap();
+        int tw = tileManager.getTileWidth();
+        int th = tileManager.getTileHeight();
 
-        for (int row = startRow; row <= endRow; row++) {
-            for (int col = startCol; col <= endCol; col++) {
-                // Ensure we stay within array bounds
-                if (row >= 0 && row < tileManager.getTileMap().getRows() && 
+        // Calculate which tiles the player is touching
+        int columnStart = playerHitbox.x / tw;
+        int columnEnd = (playerHitbox.x + playerHitbox.width) / tw;
+        int rowStart = playerHitbox.y / th;
+        int rowEnd = (playerHitbox.y + playerHitbox.height) / th;
+
+        for (int row = rowStart; row <= rowEnd; row++) {
+            for (int col = columnStart; col <= columnEnd; col++) {
+                // Bounds check
+                if (row >= 0 && row < tileManager.getTileMap().getRows() &&
                     col >= 0 && col < tileManager.getTileMap().getCols()) {
-                    
-                    if (map[row][col] != 0) {
-                        Rectangle tRect = tileManager.getBound(row, col);
-                        if (pRect.intersects(tRect)) {
-                            return true;
-                        }
+
+                    int tileType = worldGrid[row][col];
+
+                    // Portal (7) and Air (0) are not solid
+                    if (tileType == 0 || tileType == 7) {
+                        continue;
+                    }
+
+                    // Check actual intersection
+                    Rectangle tileBounds = tileManager.getBound(row, col);
+                    if (playerHitbox.intersects(tileBounds)) {
+                        return true;
                     }
                 }
             }
