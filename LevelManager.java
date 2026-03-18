@@ -12,6 +12,10 @@ public class LevelManager {
     }
 
     public void setLevel(int i) { if (i >= 0 && i < 3) currentIndex = i; }
+    
+    // Added this to track the current level for automatic progression
+    public int getCurrentLevelIndex() { return currentIndex; }
+    
     public String[] getLevelNames() { return names; }
     public TileMap getCurrentLevel() { return levels[currentIndex]; }
     public String getCurrentBackgroundPath() { return backgrounds[currentIndex]; }

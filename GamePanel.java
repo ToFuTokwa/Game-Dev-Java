@@ -54,13 +54,12 @@ public class GamePanel extends JPanel implements Runnable {
         int row = hitbox.y / 32;
         int col = hitbox.x / 32;
 
-        // Check nearby tiles for a portal
         for (int r = row - 1; r <= row + 1; r++) {
             for (int c = col - 1; c <= col + 1; c++) {
                 if (tileManager.isPortal(r, c)) {
                     Rectangle portalArea = tileManager.getPortalBounds(r, c);
                     if (hitbox.intersects(portalArea)) {
-                        promptLevelChange();
+                        advanceToNextLevel(); // Automatically moves to next level
                         return;
                     }
                 }
@@ -68,18 +67,18 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private void promptLevelChange() {
+    private void advanceToNextLevel() {
         player.resetInputs();
-        String[] options = levelManager.getLevelNames();
-        int choice = JOptionPane.showOptionDialog(this, "Where would you like to travel?", "Portal Travel",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+        
+        // Calculate next level; loops back to 0 if at the end
+        int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
 
-        if (choice != -1) {
-            levelManager.setLevel(choice);
-            tileManager.setTileMap(levelManager.getCurrentLevel());
-            updateLevelVisuals();
-            player.setPosition(100, 100);
-        }
+        levelManager.setLevel(nextLevel);
+        tileManager.setTileMap(levelManager.getCurrentLevel());
+        updateLevelVisuals();
+        
+        // Reset player to a default starting position
+        player.setPosition(100, 100);
     }
 
     @Override
