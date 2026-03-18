@@ -50,6 +50,20 @@ public class TileManager {
         }
     }
 
+    // NEW: Scans the map to find where the portal is located
+    public Point getPortalLocation() {
+        int[][] grid = tileMap.getMap();
+        for (int r = 0; r < grid.length; r++) {
+            for (int c = 0; c < grid[r].length; c++) {
+                if (grid[r][c] == 7) {
+                    // Returns the X and Y coordinates in pixels
+                    return new Point(c * SIZE, r * SIZE);
+                }
+            }
+        }
+        return new Point(100, 100); // Default fallback if no portal is found
+    }
+
     public Rectangle getBound(int r, int c) { return new Rectangle(c * SIZE, r * SIZE, SIZE, SIZE); }
     public Rectangle getPortalBounds(int r, int c) { return new Rectangle(c * SIZE - 16, r * SIZE - 32, 64, 64); }
     public boolean isPortal(int r, int c) { return tileMap.getTile(r, c) == 7; }

@@ -59,7 +59,7 @@ public class GamePanel extends JPanel implements Runnable {
                 if (tileManager.isPortal(r, c)) {
                     Rectangle portalArea = tileManager.getPortalBounds(r, c);
                     if (hitbox.intersects(portalArea)) {
-                        advanceToNextLevel(); // Automatically moves to next level
+                        advanceToNextLevel();
                         return;
                     }
                 }
@@ -70,15 +70,17 @@ public class GamePanel extends JPanel implements Runnable {
     private void advanceToNextLevel() {
         player.resetInputs();
         
-        // Calculate next level; loops back to 0 if at the end
+        // 1. Calculate and set the next level
         int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
-
         levelManager.setLevel(nextLevel);
+        
+        // 2. Update the tileManager with the NEW level map
         tileManager.setTileMap(levelManager.getCurrentLevel());
         updateLevelVisuals();
         
-        // Reset player to a default starting position
-        player.setPosition(100, 100);
+        // 3. Find the portal in the NEW level and move the player there
+        Point spawnPoint = tileManager.getPortalLocation();
+        player.setPosition(spawnPoint.x, spawnPoint.y);
     }
 
     @Override
