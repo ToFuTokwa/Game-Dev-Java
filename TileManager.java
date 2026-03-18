@@ -23,8 +23,8 @@ public class TileManager {
             grass = ImageIO.read(new File(path + "GrassDirt.png"));
             fullGreen = ImageIO.read(new File(path + "FullGreen.png"));
             
-            for (int i = 0; i < 6; i++) {
-                portalFrames[i] = ImageIO.read(new File("Assets/portal/Dimensional_Portal-" + (i + 1) + ".png"));
+            for (int i = 0; i < 8; i++) {
+                portalFrames[i] = ImageIO.read(new File("Assets/portal/spr_portal_strip8-" + (i + 1) + ".png"));
             }
         } catch (Exception e) { System.out.println("Image loading failed."); }
     }
