@@ -30,7 +30,6 @@ public class TileManager {
     }
 
     public void draw(Graphics g) {
-        // Portal Animation timing
         if (System.currentTimeMillis() - lastAnimTime > 150) {
             animFrame = (animFrame + 1) % 6;
             lastAnimTime = System.currentTimeMillis();
@@ -40,9 +39,9 @@ public class TileManager {
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
                 int id = grid[r][c];
-                if (id == 7) { // Portal
+                if (id == 7) { 
                     g.drawImage(portalFrames[animFrame], c * SIZE - 16, r * SIZE - 32, 64, 64, null);
-                } else if (id != 0) { // Solid Tiles
+                } else if (id != 0) {
                     BufferedImage img = (id == 1) ? dirt : (id == 2) ? grass : (id == 3) ? fullGreen : null;
                     if (img != null) g.drawImage(img, c * SIZE, r * SIZE, SIZE, SIZE, null);
                 }
@@ -50,18 +49,16 @@ public class TileManager {
         }
     }
 
-    // NEW: Scans the map to find where the portal is located
     public Point getPortalLocation() {
         int[][] grid = tileMap.getMap();
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
                 if (grid[r][c] == 7) {
-                    // Returns the X and Y coordinates in pixels
                     return new Point(c * SIZE, r * SIZE);
                 }
             }
         }
-        return new Point(100, 100); // Default fallback if no portal is found
+        return new Point(100, 100); 
     }
 
     public Rectangle getBound(int r, int c) { return new Rectangle(c * SIZE, r * SIZE, SIZE, SIZE); }

@@ -103,6 +103,21 @@ public class Player implements KeyListener, MouseListener {
         if (dx != 0) isFacingRight = dx > 0;
         isCurrentlyMoving = (dx != 0);
 
+        if (worldX < 0) worldX = 0;
+        if (worldX > 1280 - playerWidth) worldX = 1280 - playerWidth;
+
+        if (worldY < 0) {
+            worldY = 0;
+            verticalSpeed = 0;
+            
+        }
+        if (worldY > 736 - playerHeight) {
+            worldY = 736 - playerHeight;
+            isOnGround = true;
+        }
+
+        
+
         updateAnimationState();
     }
 

@@ -70,17 +70,20 @@ public class GamePanel extends JPanel implements Runnable {
     private void advanceToNextLevel() {
         player.resetInputs();
         
-        // 1. Calculate and set the next level
+        // Move to the next level index
         int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
         levelManager.setLevel(nextLevel);
         
-        // 2. Update the tileManager with the NEW level map
+        // Update the map and visuals
         tileManager.setTileMap(levelManager.getCurrentLevel());
         updateLevelVisuals();
         
-        // 3. Find the portal in the NEW level and move the player there
+        // Find portal in the new level
         Point spawnPoint = tileManager.getPortalLocation();
-        player.setPosition(spawnPoint.x, spawnPoint.y);
+        
+        // OFFSET: Subtract 48 pixels to spawn the character above the tile
+        // This prevents them from being stuck "inside" the floor
+        player.setPosition(spawnPoint.x, spawnPoint.y - 48);
     }
 
     @Override
