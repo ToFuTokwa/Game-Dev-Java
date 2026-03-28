@@ -43,7 +43,7 @@ public class Enemy {
     }
 
     private boolean isOnGround = false; // NEW: Track ground state for better physics handling
-
+    private boolean debugMode = false; // Set to true to enable hitbox debugging
     // ============================================================================
     // FIELDS
     // ============================================================================
@@ -147,6 +147,8 @@ public class Enemy {
             int exclamationY = visualY + 25; // 50 pixels above the sprite
             g.drawString("!", exclamationX, exclamationY);
         }
+
+        renderDebugHitboxes(g);
         
     }
 
@@ -160,6 +162,20 @@ public class Enemy {
         loadTelegraphFrames();
         loadHurtFrames();
         debugSpriteStatus(); // Debug output
+    }
+
+    private void renderDebugHitboxes(Graphics g) {
+        if (debugMode == false) return;
+        g.setColor(Color.BLUE);
+        Rectangle body = getEnemyHitbox();
+        g.drawRect(body.x, body.y, body.width, body.height);
+
+        // Draw Attack Hitbox (Only when attacking)
+        if (currentState == State.ATTACK && debugMode == true) {
+            g.setColor(Color.RED);
+            Rectangle attack = getAttackHitbox();
+            g.drawRect(attack.x, attack.y, attack.width, attack.height);
+        }
     }
 
     private void loadHurtFrames() {
