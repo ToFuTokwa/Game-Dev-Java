@@ -41,7 +41,9 @@ public class Enemy {
     public enum State {
         PATROL, CHASE, TELEGRAPH, ATTACK, HURT, DEAD
     }
-    
+
+    private boolean isOnGround = false; // NEW: Track ground state for better physics handling
+
     // ============================================================================
     // FIELDS
     // ============================================================================
@@ -98,7 +100,7 @@ public class Enemy {
         if (currentState == State.DEAD) return;
         
         stateTimer += deltaTime;
-        updatePhysics(deltaTime);
+        updateGravity(tileManager); // NEW: Update gravity with tileManager for ground checks
         updateStateMachine(deltaTime, player);
         handleCollisions(collisionChecker, tileManager);
         handleAttack(player);
@@ -332,21 +334,30 @@ public class Enemy {
     // ============================================================================
     // PHYSICS SYSTEM
     // ============================================================================
-    private void updatePhysics(float deltaTime) {
-        if (!isOnGround()) {
+    
+    private void updateGravity(TileManager tileManager) {
+        Rectangle hitbox = getEnemyHitbox();
+        int centerX = hitbox.x + (hitbox.width / 2);
+        int bottomY = hitbox.y + hitbox.height;
+
+        // Check 1 pixel below
+        int tileX = centerX / TILE_SIZE;
+        int tileYBelow = (bottomY + 1) / TILE_SIZE;
+
+        this.isOnGround = tileManager.isTileSolid(tileX, tileYBelow);
+
+        if (isOnGround) {
+            if (vy > 0) { 
+                vy = 0;
+                // Perfect snap: places the bottom of the hitbox exactly on the tile top
+                y = (tileYBelow * TILE_SIZE) - (hitbox.height + HITBOX_Y_OFFSET);
+            }
+        } else {
+            // Only apply velocity to Y if we are NOT on the ground
             vy += GRAVITY;
             if (vy > MAX_FALL_SPEED) vy = MAX_FALL_SPEED;
-        } else {
-            vy = 0;
+            y += vy; // Move vertically here instead of handleCollisions
         }
-    }
-    
-    private boolean isOnGround() {
-        return vy <= 0.1f;
-    }
-    
-    private void snapToGround() {
-        y = ((int)((y + ENEMY_HEIGHT) / TILE_SIZE) * TILE_SIZE) - ENEMY_HEIGHT;
     }
 
     // ============================================================================
@@ -354,8 +365,8 @@ public class Enemy {
     // ============================================================================
     private void handleCollisions(CheckCollision collisionChecker, TileManager tileManager) {
         float oldX = x;
-        float oldY = y;
         
+        // Handle X movement and wall collisions only
         x += vx;
         if (collisionChecker.isColliding(this, tileManager)) {
             x = oldX;
@@ -365,28 +376,17 @@ public class Enemy {
             vx = 0;
         }
         
-        y += vy;
-        if (collisionChecker.isColliding(this, tileManager)) {
-            y = oldY;
-            if (vy > 0) {
-                snapToGround();
-            }
-            vy = 0;
-        }
+        // REMOVE the y += vy section here. 
+        // It is fighting with your updateGravity method.
     }
 
     // ============================================================================
     // STATE MACHINE
     // ============================================================================
     private void updateStateMachine(float deltaTime, Player player) {
-        // 1. Calculate centers to fix the "overlap" issue
         float enemyCenterX = getEnemyHitbox().x + (getEnemyHitbox().width / 2);
         float playerCenterX = player.getHitbox().x + (player.getHitbox().width / 2);
-        
-        // Horizontal distance between centers
         float distToPlayer = Math.abs(playerCenterX - enemyCenterX);
-
-        // 2. Vertical check (Same Level)
         float playerY = player.getY();
         boolean sameLevel = Math.abs(playerY - y) < TILE_SIZE * 2; 
 
@@ -399,8 +399,8 @@ public class Enemy {
         switch (currentState) {
             case PATROL -> handlePatrolState(player, deltaTime);
             case CHASE -> handleChaseState(distToPlayer, player, deltaTime); 
-            case TELEGRAPH -> handleTelegraphState(deltaTime, player);  // ✅ FIXED
-            case ATTACK -> handleAttackState(player);                   // ✅ FIXED
+            case TELEGRAPH -> handleTelegraphState(deltaTime, player);  
+            case ATTACK -> handleAttackState(player);                  
             case HURT -> handleHurtState();
             case DEAD -> {}
         }
@@ -425,17 +425,16 @@ public class Enemy {
         
         float enemyCenterX = getEnemyHitbox().x + (getEnemyHitbox().width / 2);
         float playerCenterX = player.getHitbox().x + (player.getHitbox().width / 2);
-        
-        // THE CHEAT: Subtract half the player's width (or a fixed value like 20) 
-        // from the distance. This forces the skeleton to "dig in" closer.
         float adjustedDistance = distanceToPlayer - 25.0f; 
 
         direction = (playerCenterX > enemyCenterX) ? 1 : -1;
         vx = direction * CHASE_SPEED;
-        
-        // Now it won't stop until it's "cheated" its way into your space
+
         if (adjustedDistance < ATTACK_RANGE) {
             transitionToTelegraph();
+        } else if (adjustedDistance > 100.0f) {
+            currentState = State.PATROL;
+            stateTimer = 0;
         }
     }
 

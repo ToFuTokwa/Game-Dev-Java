@@ -69,6 +69,21 @@ public class TileManager {
         return new Point(100, 100); 
     }
 
+    public boolean isTileSolid(int col, int row) {
+        int[][] grid = tileMap.getMap();
+        
+        // 1. Boundary Check: Make sure we aren't checking outside the map array
+        if (row < 0 || row >= grid.length || col < 0 || col >= grid[0].length) {
+            return false;
+        }
+
+        int tileID = grid[row][col];
+
+        // 2. Solid Logic: ID 1 (Dirt), 2 (Grass), and 3 (FullGreen) are solid
+        // Adjust these IDs based on your game's solid tiles
+        return tileID == 1 || tileID == 2 || tileID == 3;
+    }
+
     public Rectangle getBound(int r, int c) { return new Rectangle(c * SIZE, r * SIZE, SIZE, SIZE); }
     public Rectangle getPortalBounds(int r, int c) { return new Rectangle(c * SIZE - 16, r * SIZE - 32, 64, 64); }
     public boolean isPortal(int r, int c) { return tileMap.getTile(r, c) == 7; }

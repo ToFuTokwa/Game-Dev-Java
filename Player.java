@@ -117,14 +117,30 @@ public class Player implements KeyListener, MouseListener {
             }
         }
         
-        // Only draw attack hitbox during attack (DEBUG)
-        if (isAttacking) {
-            //drawAttackHitbox(g);
-        }
+        //DEBUG: Visualize hitbox (remove in release)
+        //DebugDrawHitbox(g);
+    }
+
+    private void DebugDrawHitbox(Graphics g) {
+        // 1. Draw Player Physics Hitbox (Red)
+        g.setColor(Color.RED);
+        Rectangle hitbox = getHitbox();
+        g.drawRect(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
+
+        // 2. Prepare Attack Hitbox (Blue)
+        Rectangle attackHitbox = getAttackHitbox();
         
-        // DEBUG: Draw player hitbox (remove in release)
-        // g.setColor(Color.RED);
-        // g.drawRect(getHitbox().x, getHitbox().y, getHitbox().width, getHitbox().height);
+        if (isAttacking) { 
+            // Show solid attack hitbox during the actual attack
+            g.setColor(Color.BLUE);
+            // FIX: width and height should be the hitbox variables, not calculated with worldX
+            g.drawRect(attackHitbox.x, attackHitbox.y, attackHitbox.width, attackHitbox.height);
+        } else {
+            // Show semi-transparent preview when NOT attacking
+            g.setColor(new Color(0, 0, 255, 100)); 
+            // FIX: Use fillRect with the actual hitbox dimensions
+            g.fillRect(attackHitbox.x, attackHitbox.y, attackHitbox.width, attackHitbox.height);
+        }
     }
 
     private void drawHPBar(Graphics g) {
@@ -197,28 +213,19 @@ public class Player implements KeyListener, MouseListener {
         int attackWidth = ATTACK_HITBOX_WIDTH;
         int attackHeight = ATTACK_HITBOX_HEIGHT;
         int attackX, attackY;
-        
         attackY = worldY + ATTACK_HITBOX_Y_OFFSET;
         
         if (isFacingRight) {
-            attackX = worldX + PLAYER_WIDTH + ATTACK_HITBOX_X_OFFSET;  // Right side + X offset
+            // Positioned to the right of the player
+            attackX = worldX + PLAYER_WIDTH + ATTACK_HITBOX_X_OFFSET;  
         } else {
-            attackX = worldX - attackWidth + ATTACK_HITBOX_X_OFFSET;   // Left side + X offset
+            // Positioned to the left of the player
+            attackX = worldX - attackWidth - ATTACK_HITBOX_X_OFFSET;   
         }
         
         return new Rectangle(attackX, attackY, attackWidth, attackHeight);
     }
-    
-    // Separate debug drawing for attack hitbox
-    //DEBUG: Visualize attack hitbox (remove in release)
-    private void drawAttackHitbox(Graphics g) {
-        Rectangle attackBox = getAttackHitbox();
-        g.setColor(new Color(0, 0, 255, 100)); // Semi-transparent blue
-        g.fillRect(attackBox.x, attackBox.y, attackBox.width, attackBox.height);
-        g.setColor(Color.BLUE);
-        g.drawRect(attackBox.x, attackBox.y, attackBox.width, attackBox.height);
-    }
-    
+      
     // Enemy collision handling
     private void handleEnemyCollisions(List<Enemy> enemies) {
         for (Enemy enemy : enemies) {
