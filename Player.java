@@ -3,200 +3,479 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import javax.imageio.ImageIO;
 
 public class Player implements KeyListener, MouseListener {
+    
+    // =====================================================
+    // CONSTANTS - FIXED FOR NO JITTER
+    // =====================================================
+    private static final int PLAYER_WIDTH = 64;
+    private static final int PLAYER_HEIGHT = 64;
 
-    private double worldX = 100;
-    private double worldY = 100; 
-    private final int playerWidth = 64;
-    private final int playerHeight = 64;
-
-    private double movementSpeed = 3.5;
+    private static final int MAX_HP = 100;
+    private int currentHP = MAX_HP;
+    private boolean isInvulnerable = false;
+    private long invulnerabilityStartTime = 0;
+    private static final long INVULNERABILITY_DURATION = 1000; // 1 second
+    private static final long INVULNERABILITY_FLASH_INTERVAL = 100; // Flash every 100ms
+    private static final int attack_damage = 10;
+    
+    // Hitbox perfectly centered and aligned with sprite edges
+    private static final int HITBOX_X_OFFSET = 20;  // (64-24)/2 = 20px from left
+    private static final int HITBOX_Y_OFFSET = 8;   // Adjusted for better ground alignment
+    private static final int HITBOX_WIDTH = 24;
+    private static final int HITBOX_HEIGHT = 56;    // Extended to match sprite height better
+    private static final int ATTACK_HITBOX_WIDTH = 17;
+    private static final int ATTACK_HITBOX_HEIGHT = 64;
+    private static final int ATTACK_HITBOX_Y_OFFSET = 0;
+    private static final int ATTACK_HITBOX_X_OFFSET = -17; // ADDED: X offset for fine-tuning
+    
+    private static final double MOVEMENT_SPEED = 3.0;  // Slightly reduced for smoother feel
+    private static final double GRAVITY_FORCE = 0.5;
+    private static final double JUMP_POWER = -11;
+    
+    private static final String SPRITE_PATH = "Assets/playerSprite/";
+    private static final int IDLE_FRAMES = 4;
+    private static final int WALK_FRAMES = 12;
+    private static final int JUMP_FRAMES = 8;
+    private static final int ATTACK_FRAMES = 8;
+    private static final int IDLE_START = 1;
+    private static final int WALK_START = 5;
+    private static final int JUMP_START = 23;
+    private static final int ATTACK_START = 43;
+    
+    private static final int ANIMATION_DELAY_NORMAL = 120;
+    private static final int ANIMATION_DELAY_ATTACK = 100;
+    
+    private static final int TILE_SIZE = 32;
+    private static final int SCREEN_WIDTH = 1280;
+    
+    // =====================================================
+    // STATE VARIABLES - USING INT FOR PIXEL-PERFECT POSITIONING
+    // =====================================================
+    private int worldX = 100;
+    private int worldY = 100;
+    
     private double verticalSpeed = 0;
-    private final double gravityForce = 0.5;
-    private final double jumpPower = -11;
-
+    
     private BufferedImage[] idleAnim, walkingAnim, jumpingAnim, attackingAnim;
     private BufferedImage[] currentlyPlayingAnim = null;
     private int animationFrameIndex = 0;
     private long lastFrameTime = 0;
-
+    
     private boolean isFacingRight = true;
     private boolean isCurrentlyMoving = false;
     private boolean isOnGround = false;
     private boolean isAttacking = false;
-
+    
+    // Input states
     private boolean isLeftPressed, isRightPressed, isJumpPressed, isInteractPressed;
 
+    // =====================================================
+    // CONSTRUCTOR
+    // =====================================================
     public Player() {
         loadAnimations();
     }
-
-    // FIX: Renamed from getBounds to getHitbox to match CheckCollision usage
-    public Rectangle getHitbox() {
-        return new Rectangle((int)worldX + 20, (int)worldY + 10, 24, 50);
+    
+    // =====================================================
+    // CORE METHODS
+    // =====================================================
+    
+    public void update(CheckCollision collisionChecker, TileManager tileManager, List<Enemy> enemies) {
+        handleInvulnerability();
+        handleHorizontalMovement(collisionChecker, tileManager);
+        handleEnemyCollisions(enemies);
+        handleVerticalMovementAndGravity(collisionChecker, tileManager);
+        handleJumping();
+        enforceScreenBoundaries();
+        updateAnimationState();
     }
-
-    public void loadAnimations() {
-        String path = "Assets/playerSprite/";
-        idleAnim = loadFrames(path + "playerIdle/", 4, 1);
-        walkingAnim = loadFrames(path + "playerWalk/", 12, 5);
-        jumpingAnim = loadFrames(path + "playerJump/", 8, 23);
-        attackingAnim = loadFrames(path + "playerAttack/", 8, 43);
-    }
-
-    private BufferedImage[] loadFrames(String folder, int count, int startNumber) {
-        BufferedImage[] frames = new BufferedImage[count];
-        for (int i = 0; i < count; i++) {
-            String file = folder + "AnimationSheet_Character-" + (startNumber + i) + ".png.png";
-            try {
-                File imageFile = new File(file);
-                if (imageFile.exists()) {
-                    frames[i] = ImageIO.read(imageFile);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+    
+    public void draw(Graphics g) {
+        // Invulnerability flashing effect
+        if (isInvulnerable) {
+            long currentTime = System.currentTimeMillis();
+            long flashTime = (currentTime - invulnerabilityStartTime) % (INVULNERABILITY_FLASH_INTERVAL * 2);
+            if (flashTime > INVULNERABILITY_FLASH_INTERVAL) {
+                return; // Skip drawing during flash
             }
         }
-        return frames;
+        
+        drawHPBar(g);
+        
+        if (currentlyPlayingAnim != null && animationFrameIndex < currentlyPlayingAnim.length) {
+            BufferedImage frame = currentlyPlayingAnim[animationFrameIndex];
+            if (frame != null) {
+                // PIXEL-PERFECT DRAWING - NO CASTING JITTER
+                if (isFacingRight) {
+                    g.drawImage(frame, worldX, worldY, PLAYER_WIDTH, PLAYER_HEIGHT, null);
+                } else {
+                    g.drawImage(frame, worldX + PLAYER_WIDTH, worldY, -PLAYER_WIDTH, PLAYER_HEIGHT, null);
+                }
+            }
+        }
+        
+        // Only draw attack hitbox during attack (DEBUG)
+        if (isAttacking) {
+            //drawAttackHitbox(g);
+        }
+        
+        // DEBUG: Draw player hitbox (remove in release)
+        // g.setColor(Color.RED);
+        // g.drawRect(getHitbox().x, getHitbox().y, getHitbox().width, getHitbox().height);
     }
 
-    public void update(CheckCollision collisionChecker, TileManager tileManager) {
-        double dx = 0;
-        if (isLeftPressed) dx -= movementSpeed;
-        if (isRightPressed) dx += movementSpeed;
+    private void drawHPBar(Graphics g) {
+        final int BAR_X = 10;
+        final int BAR_Y = 10;
+        final int BAR_WIDTH = 200;
+        final int BAR_HEIGHT = 20;
+        
+        // Red background (empty portion)
+        g.setColor(Color.RED);
+        g.fillRect(BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT);
+        
+        // Green foreground (filled portion)
+        g.setColor(Color.GREEN);
+        int hpWidth = (int)((currentHP / (double)MAX_HP) * BAR_WIDTH);
+        g.fillRect(BAR_X, BAR_Y, hpWidth, BAR_HEIGHT);
+        
+        // White border
+        g.setColor(Color.WHITE);
+        g.drawRect(BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT);
+        
+        // HP text
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        g.drawString(currentHP + "/" + MAX_HP, BAR_X + 5, BAR_Y + 15);
+    }
+    
+    // Complete damage system
+    public void takeDamage(int damage) {
+        if (isInvulnerable || currentHP <= 0) return;
+        
+        currentHP -= damage;
+        isInvulnerable = true;
+        invulnerabilityStartTime = System.currentTimeMillis();
+        
+        // Knockback effect
+        verticalSpeed = -8; // Jump up
+        if (isFacingRight) {
+            worldX += 10; // Push left
+        } else {
+            worldX -= 10; // Push right
+        }
+        
+        System.out.println("Player took " + damage + " damage. HP: " + currentHP);
+        
+        if (currentHP <= 0) {
+            System.out.println("PLAYER DIED!");
+        }
+    }
 
-        // X Movement and Collision
+    public boolean isDead() {
+        return currentHP <= 0;
+    }
+
+    public void heal(int amount) {
+        currentHP = Math.min(currentHP + amount, MAX_HP);
+    }
+    
+    private void handleInvulnerability() {
+        if (isInvulnerable) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - invulnerabilityStartTime > INVULNERABILITY_DURATION) {
+                isInvulnerable = false;
+            }
+        }
+    }
+    
+    // FIXED: Attack hitbox calculation WITH X OFFSET
+    private Rectangle getAttackHitbox() {
+        int attackWidth = ATTACK_HITBOX_WIDTH;
+        int attackHeight = ATTACK_HITBOX_HEIGHT;
+        int attackX, attackY;
+        
+        attackY = worldY + ATTACK_HITBOX_Y_OFFSET;
+        
+        if (isFacingRight) {
+            attackX = worldX + PLAYER_WIDTH + ATTACK_HITBOX_X_OFFSET;  // Right side + X offset
+        } else {
+            attackX = worldX - attackWidth + ATTACK_HITBOX_X_OFFSET;   // Left side + X offset
+        }
+        
+        return new Rectangle(attackX, attackY, attackWidth, attackHeight);
+    }
+    
+    // Separate debug drawing for attack hitbox
+    //DEBUG: Visualize attack hitbox (remove in release)
+    private void drawAttackHitbox(Graphics g) {
+        Rectangle attackBox = getAttackHitbox();
+        g.setColor(new Color(0, 0, 255, 100)); // Semi-transparent blue
+        g.fillRect(attackBox.x, attackBox.y, attackBox.width, attackBox.height);
+        g.setColor(Color.BLUE);
+        g.drawRect(attackBox.x, attackBox.y, attackBox.width, attackBox.height);
+    }
+    
+    // Enemy collision handling
+    private void handleEnemyCollisions(List<Enemy> enemies) {
+        for (Enemy enemy : enemies) {
+            if (getHitbox().intersects(enemy.getEnemyHitbox())) {
+                // Enemy attacks player during attack state
+                if (enemy.getCurrentState() == Enemy.State.ATTACK) {
+                    // Damage is applied by enemy's performAttack() method
+                }
+            }
+            
+            // Player attacks enemy during attack animation damage frame
+            if (isAttacking && animationFrameIndex == 3) { // Damage frame
+                Rectangle attackHitbox = getAttackHitbox();
+                if (attackHitbox.intersects(enemy.getEnemyHitbox())) {
+                    enemy.takeDamage(attack_damage); // Player sword damage
+                    System.out.println("Player hit enemy for " + attack_damage + "damage!");
+                }
+            }
+        }
+    }
+    
+    // =====================================================
+    // MOVEMENT & COLLISION - PIXEL PERFECT
+    // =====================================================
+    
+    private void handleHorizontalMovement(CheckCollision collisionChecker, TileManager tileManager) {
+        int dx = calculateHorizontalMovement();
+        
+        // Move and check collision
         worldX += dx;
         if (collisionChecker.isColliding(this, tileManager)) {
             worldX -= dx;
         }
-
-        // Y Movement and Gravity
-        if (!isOnGround) verticalSpeed += gravityForce;
-        else verticalSpeed = 0;
-
-        worldY += verticalSpeed;
-        if (collisionChecker.isColliding(this, tileManager)) {
-            if (verticalSpeed > 0) { // Landing on ground
-                isOnGround = true;
-                // Snap player to the top of the tile to prevent vibrating/falling through
-                worldY = (Math.floor((getHitbox().y + getHitbox().height) / 32) * 32) - 60;
-                verticalSpeed = 0;
-            } else { // Hitting ceiling
-                worldY -= verticalSpeed;
-                verticalSpeed = 0;
-            }
+        
+        updateFacingDirection(dx);
+        isCurrentlyMoving = (dx != 0);
+    }
+    
+    private int calculateHorizontalMovement() {
+        int dx = 0;
+        if (isLeftPressed) dx -= (int)MOVEMENT_SPEED;
+        if (isRightPressed) dx += (int)MOVEMENT_SPEED;
+        return dx;
+    }
+    
+    private void handleVerticalMovementAndGravity(CheckCollision collisionChecker, TileManager tileManager) {
+        applyGravity();
+        
+        // Convert double to int movement for pixel-perfect positioning
+        int dy = (int)(verticalSpeed + 0.5);  // Round to nearest pixel
+        worldY += dy;
+        
+        if (handleVerticalCollision(collisionChecker, tileManager)) {
+            resolveVerticalCollision(dy > 0);
         } else {
-            // Check if there is still ground beneath us
-            worldY += 1;
-            if (!collisionChecker.isColliding(this, tileManager)) isOnGround = false;
-            worldY -= 1;
+            checkEdgeFall(collisionChecker, tileManager);
         }
-
-        if (isOnGround && isJumpPressed) {
-            verticalSpeed = jumpPower;
+    }
+    
+    private void applyGravity() {
+        if (!isOnGround) {
+            verticalSpeed += GRAVITY_FORCE;
+            // Clamp vertical speed to prevent tunneling
+            if (verticalSpeed > 12) verticalSpeed = 12;
+        } else {
+            verticalSpeed = 0;
+        }
+    }
+    
+    private boolean handleVerticalCollision(CheckCollision collisionChecker, TileManager tileManager) {
+        return collisionChecker.isColliding(this, tileManager);
+    }
+    
+    private void resolveVerticalCollision(boolean falling) {
+        if (falling) {
+            // PERFECT GROUND SNAPPING - NO JITTER
+            isOnGround = true;
+            worldY = ((worldY + PLAYER_HEIGHT) / TILE_SIZE) * TILE_SIZE - PLAYER_HEIGHT;
+            verticalSpeed = 0;
+        } else {
+            // Hit ceiling
+            verticalSpeed = 0;
+        }
+    }
+    
+    private void checkEdgeFall(CheckCollision collisionChecker, TileManager tileManager) {
+        worldY += 1;
+        if (!collisionChecker.isColliding(this, tileManager)) {
             isOnGround = false;
         }
-
-        if (dx != 0) isFacingRight = dx > 0;
-        isCurrentlyMoving = (dx != 0);
-
-        if (worldX < 0) worldX = 0;
-        if (worldX > 1280 - playerWidth) worldX = 1280 - playerWidth;
-
-        if (worldY < 0) {
-            worldY = 0;
-            verticalSpeed = 0;
-            
-        }
-        if (worldY > 736 - playerHeight) {
-            worldY = 736 - playerHeight;
-            isOnGround = true;
-        }
-
-        
-
-        updateAnimationState();
+        worldY -= 1;
     }
-
-    private void updateAnimationState() {
-        BufferedImage[] next = isAttacking ? attackingAnim : !isOnGround ? jumpingAnim : isCurrentlyMoving ? walkingAnim : idleAnim;
-        
-        if (next == null || next.length == 0) return; // FIX: Added safety check
-        if (next != currentlyPlayingAnim) {
-            currentlyPlayingAnim = next;
-            animationFrameIndex = 0;
+    
+    private void handleJumping() {
+        if (isOnGround && isJumpPressed) {
+            verticalSpeed = JUMP_POWER;
+            isOnGround = false;
         }
-
+    }
+    
+    private void enforceScreenBoundaries() {
+        if (worldX < 0) worldX = 0;
+        if (worldX > SCREEN_WIDTH - PLAYER_WIDTH) {
+            worldX = SCREEN_WIDTH - PLAYER_WIDTH;
+        }
+    }
+    
+    private void updateFacingDirection(int dx) {
+        if (dx != 0) {
+            isFacingRight = dx > 0;
+        }
+    }
+    
+    // =====================================================
+    // ANIMATION SYSTEM
+    // =====================================================
+    
+    private void updateAnimationState() {
+        BufferedImage[] nextAnim = determineCurrentAnimation();
+        if (nextAnim == null || nextAnim.length == 0) return;
+        
+        if (nextAnim != currentlyPlayingAnim) {
+            switchAnimation(nextAnim);
+            return;
+        }
+        
+        advanceAnimationFrame();
+        handleAnimationCompletion();
+    }
+    
+    private BufferedImage[] determineCurrentAnimation() {
+        if (isAttacking) return attackingAnim;
+        if (!isOnGround) return jumpingAnim;
+        return isCurrentlyMoving ? walkingAnim : idleAnim;
+    }
+    
+    private void switchAnimation(BufferedImage[] newAnim) {
+        currentlyPlayingAnim = newAnim;
+        animationFrameIndex = 0;
+    }
+    
+    private void advanceAnimationFrame() {
         long currentTime = System.currentTimeMillis();
-        int delay = isAttacking ? 100 : 120;
-
+        int delay = isAttacking ? ANIMATION_DELAY_ATTACK : ANIMATION_DELAY_NORMAL;
+        
         if (currentTime - lastFrameTime > delay) {
             animationFrameIndex++;
             lastFrameTime = currentTime;
         }
-
+    }
+    
+    private void handleAnimationCompletion() {
         if (animationFrameIndex >= currentlyPlayingAnim.length) {
             if (isAttacking) {
                 isAttacking = false;
-                animationFrameIndex = 0;
-            } else if (!isOnGround) {
-                animationFrameIndex = currentlyPlayingAnim.length - 1;
-            } else {
-                animationFrameIndex = 0;
             }
+            animationFrameIndex = getResetFrameIndex();
         }
     }
-
-    public void draw(Graphics g) {
-        if (currentlyPlayingAnim != null && animationFrameIndex < currentlyPlayingAnim.length) {
-            BufferedImage frame = currentlyPlayingAnim[animationFrameIndex];
-            if (frame != null) { // FIX: Ensure frame exists before drawing
-                if (isFacingRight) {
-                    g.drawImage(frame, (int)worldX, (int)worldY, playerWidth, playerHeight, null);
-                } else {
-                    g.drawImage(frame, (int)worldX + playerWidth, (int)worldY, -playerWidth, playerHeight, null);
+    
+    private int getResetFrameIndex() {
+        if (!isOnGround) {
+            return currentlyPlayingAnim.length - 1;
+        }
+        return 0;
+    }
+    
+    // =====================================================
+    // RESOURCE LOADING
+    // =====================================================
+    
+    private void loadAnimations() {
+        idleAnim = loadFrames(SPRITE_PATH + "playerIdle/", IDLE_FRAMES, IDLE_START);
+        walkingAnim = loadFrames(SPRITE_PATH + "playerWalk/", WALK_FRAMES, WALK_START);
+        jumpingAnim = loadFrames(SPRITE_PATH + "playerJump/", JUMP_FRAMES, JUMP_START);
+        attackingAnim = loadFrames(SPRITE_PATH + "playerAttack/", ATTACK_FRAMES, ATTACK_START);
+    }
+    
+    private BufferedImage[] loadFrames(String folder, int count, int startNumber) {
+        BufferedImage[] frames = new BufferedImage[count];
+        for (int i = 0; i < count; i++) {
+            String filename = folder + "AnimationSheet_Character-" + (startNumber + i) + ".png.png";
+            try {
+                File imageFile = new File(filename);
+                if (imageFile.exists()) {
+                    frames[i] = ImageIO.read(imageFile);
                 }
+            } catch (IOException e) {
+                System.err.println("Failed to load: " + filename);
             }
         }
+        return frames;
     }
-
-    public void resetInputs() {
-        isLeftPressed = isRightPressed = isJumpPressed = isInteractPressed = false;
+    
+    // =====================================================
+    // COLLISION & ACCESSORS
+    // =====================================================
+    
+    public Rectangle getHitbox() {
+        return new Rectangle(
+            worldX + HITBOX_X_OFFSET, 
+            worldY + HITBOX_Y_OFFSET, 
+            HITBOX_WIDTH, 
+            HITBOX_HEIGHT
+        );
     }
-
-    public void setPosition(double x, double y) {
+    
+    public void setPosition(int x, int y) {
         this.worldX = x;
         this.worldY = y;
     }
-
+    
+    public float getX() { return worldX; }
+    public float getY() { return worldY; }
     public boolean isInteractPressed() { return isInteractPressed; }
-
+    public int getCurrentHP() { return currentHP; }
+    
+    // =====================================================
+    // INPUT HANDLING
+    // =====================================================
+    
+    public void resetInputs() {
+        isLeftPressed = isRightPressed = isJumpPressed = isInteractPressed = false;
+    }
+    
+    // KeyListener
     @Override public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
-        if (code == KeyEvent.VK_A) isLeftPressed = true;
-        if (code == KeyEvent.VK_D) isRightPressed = true;
-        if (code == KeyEvent.VK_SPACE) isJumpPressed = true;
-        if (code == KeyEvent.VK_E) isInteractPressed = true;
+        switch (code) {
+            case KeyEvent.VK_A -> isLeftPressed = true;
+            case KeyEvent.VK_D -> isRightPressed = true;
+            case KeyEvent.VK_SPACE -> isJumpPressed = true;
+            case KeyEvent.VK_E -> isInteractPressed = true;
+        }
     }
-
+    
     @Override public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
-        if (code == KeyEvent.VK_A) isLeftPressed = false;
-        if (code == KeyEvent.VK_D) isRightPressed = false;
-        if (code == KeyEvent.VK_SPACE) isJumpPressed = false;
-        if (code == KeyEvent.VK_E) isInteractPressed = false;
+        switch (code) {
+            case KeyEvent.VK_A -> isLeftPressed = false;
+            case KeyEvent.VK_D -> isRightPressed = false;
+            case KeyEvent.VK_SPACE -> isJumpPressed = false;
+            case KeyEvent.VK_E -> isInteractPressed = false;
+        }
     }
-
+    
     @Override public void keyTyped(KeyEvent e) {}
+    
+    // MouseListener
     @Override public void mouseClicked(MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1 && !isAttacking) {
             isAttacking = true;
             animationFrameIndex = 0;
         }
     }
+    
     @Override public void mousePressed(MouseEvent e) {}
     @Override public void mouseReleased(MouseEvent e) {}
     @Override public void mouseEntered(MouseEvent e) {}

@@ -16,7 +16,7 @@ public class TileEditorFrame extends JFrame {
     private BufferedImage backgroundImage;
 
     public TileEditorFrame() {
-        setTitle("SHinRa World Editor");
+        setTitle("New Shit Level Editor");
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setSize(cols * tileSize + 220, rows * tileSize + 100);
         setLayout(null);
@@ -100,8 +100,8 @@ public class TileEditorFrame extends JFrame {
         sidebar.add(new JSeparator(JSeparator.HORIZONTAL));
 
         // Tile Selection Buttons
-        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)"};
-        int[] ids = {0, 1, 2, 3, 7};
+        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)", "Enemy Spawn (8)"};
+        int[] ids = {0, 1, 2, 3, 7, 8}; // Corresponding tile IDs
         for (int i = 0; i < tileNames.length; i++) {
             int id = ids[i];
             JButton b = new JButton(tileNames[i]);

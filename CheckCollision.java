@@ -3,11 +3,19 @@ import java.awt.Rectangle;
 public class CheckCollision {
     private final int TILE_SIZE = 32;
 
+    // Check collision for Player
     public boolean isColliding(Player player, TileManager tileManager) {
-        Rectangle hitbox = player.getHitbox();
+        return checkTiles(player.getHitbox(), tileManager);
+    }
+
+    // Check collision for Enemy
+    public boolean isColliding(Enemy enemy, TileManager tileManager) {
+        return checkTiles(enemy.getEnemyHitbox(), tileManager);
+    }
+
+    private boolean checkTiles(Rectangle hitbox, TileManager tileManager) {
         int[][] grid = tileManager.getTileMap().getMap();
         
-        // Find grid boundaries of the hitbox
         int topRow = hitbox.y / TILE_SIZE;
         int bottomRow = (hitbox.y + hitbox.height) / TILE_SIZE;
         int leftCol = hitbox.x / TILE_SIZE;
@@ -17,9 +25,11 @@ public class CheckCollision {
             for (int c = leftCol; c <= rightCol; c++) {
                 if (r >= 0 && r < grid.length && c >= 0 && c < grid[0].length) {
                     int id = grid[r][c];
-                    // 0 = Air, 7 = Portal (no collision)
-                    if (id != 0 && id != 7) {
-                        if (hitbox.intersects(tileManager.getBound(r, c))) return true;
+                    // Solid tiles: 1 (Dirt), 2 (Grass), 3 (Green)
+                    if (id >= 1 && id <= 3) {
+                        if (hitbox.intersects(tileManager.getBound(r, c))) {
+                            return true;
+                        }
                     }
                 }
             }
