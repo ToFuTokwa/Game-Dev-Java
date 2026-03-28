@@ -109,7 +109,6 @@ public class Player implements KeyListener, MouseListener {
         if (currentlyPlayingAnim != null && animationFrameIndex < currentlyPlayingAnim.length) {
             BufferedImage frame = currentlyPlayingAnim[animationFrameIndex];
             if (frame != null) {
-                // PIXEL-PERFECT DRAWING - NO CASTING JITTER
                 if (isFacingRight) {
                     g.drawImage(frame, worldX, worldY, PLAYER_WIDTH, PLAYER_HEIGHT, null);
                 } else {
