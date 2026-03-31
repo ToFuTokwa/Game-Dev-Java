@@ -69,7 +69,7 @@ public class Player implements KeyListener, MouseListener {
     private boolean isCurrentlyMoving = false;
     private boolean isOnGround = false;
     private boolean isAttacking = false;
-    
+    private boolean debugMode = false; // Set to true to visualize hitboxes
     // Input states
     private boolean isLeftPressed, isRightPressed, isJumpPressed, isInteractPressed;
 
@@ -85,6 +85,10 @@ public class Player implements KeyListener, MouseListener {
     // =====================================================
     
     public void update(CheckCollision collisionChecker, TileManager tileManager, List<Enemy> enemies) {
+        if (isDead()) {
+        System.out.println("PLAYER DIED! Game Over.");
+        System.exit(0); // This is now reachable and logical
+    }
         handleInvulnerability();
         handleHorizontalMovement(collisionChecker, tileManager);
         handleEnemyCollisions(enemies);
@@ -118,10 +122,12 @@ public class Player implements KeyListener, MouseListener {
         }
         
         //DEBUG: Visualize hitbox (remove in release)
-        //DebugDrawHitbox(g);
+        DebugDrawHitbox(g);
     }
 
     private void DebugDrawHitbox(Graphics g) {
+
+        if (!debugMode) return;
         // 1. Draw Player Physics Hitbox (Red)
         g.setColor(Color.RED);
         Rectangle hitbox = getHitbox();
@@ -130,7 +136,7 @@ public class Player implements KeyListener, MouseListener {
         // 2. Prepare Attack Hitbox (Blue)
         Rectangle attackHitbox = getAttackHitbox();
         
-        if (isAttacking) { 
+        if (isAttacking && debugMode == true) { 
             // Show solid attack hitbox during the actual attack
             g.setColor(Color.BLUE);
             // FIX: width and height should be the hitbox variables, not calculated with worldX
