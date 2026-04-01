@@ -356,7 +356,7 @@ public class Enemy {
         int centerX = hitbox.x + (hitbox.width / 2);
         int bottomY = hitbox.y + hitbox.height;
 
-        // Check 1 pixel below
+        // Check if the pixel directly below the center of the hitbox is solid
         int tileX = centerX / TILE_SIZE;
         int tileYBelow = (bottomY + 1) / TILE_SIZE;
 
@@ -365,14 +365,14 @@ public class Enemy {
         if (isOnGround) {
             if (vy > 0) { 
                 vy = 0;
-                // Perfect snap: places the bottom of the hitbox exactly on the tile top
-                y = (tileYBelow * TILE_SIZE) - (hitbox.height + HITBOX_Y_OFFSET);
+                // Snap Y to the top of the tile to prevent sinking/jittering
+                // Formula: (Tile Index * Size) - Hitbox Height - Offset
+                y = (tileYBelow * TILE_SIZE) - (getEnemyHitbox().height + HITBOX_Y_OFFSET);
             }
         } else {
-            // Only apply velocity to Y if we are NOT on the ground
             vy += GRAVITY;
             if (vy > MAX_FALL_SPEED) vy = MAX_FALL_SPEED;
-            y += vy; // Move vertically here instead of handleCollisions
+            // Removed 'y += vy' from here to keep movement organized in handleCollisions
         }
     }
 
@@ -380,20 +380,30 @@ public class Enemy {
     // COLLISION SYSTEM
     // ============================================================================
     private void handleCollisions(CheckCollision collisionChecker, TileManager tileManager) {
+        // --- 1. HANDLE X AXIS ---
         float oldX = x;
-        
-        // Handle X movement and wall collisions only
         x += vx;
+        
         if (collisionChecker.isColliding(this, tileManager)) {
-            x = oldX;
+            x = oldX; // Wall hit, revert X
             if (currentState == State.PATROL) {
                 direction *= -1;
             }
             vx = 0;
         }
+
+        // --- 2. HANDLE Y AXIS ---
+        float oldY = y;
+        y += vy; // Apply vertical velocity here
         
-        // REMOVE the y += vy section here. 
-        // It is fighting with your updateGravity method.
+        if (collisionChecker.isColliding(this, tileManager)) {
+            y = oldY; // Floor/Ceiling hit, revert Y
+            
+            if (vy > 0) {
+                isOnGround = true;
+            }
+            vy = 0;
+        }
     }
 
     // ============================================================================

@@ -20,7 +20,7 @@ public class Player implements KeyListener, MouseListener {
     private long invulnerabilityStartTime = 0;
     private static final long INVULNERABILITY_DURATION = 1000; // 1 second
     private static final long INVULNERABILITY_FLASH_INTERVAL = 100; // Flash every 100ms
-    private static final int attack_damage = 10;
+    private static final int attack_damage = 25;
     
     // Hitbox perfectly centered and aligned with sprite edges
     private static final int HITBOX_X_OFFSET = 20;  // (64-24)/2 = 20px from left
@@ -259,11 +259,13 @@ public class Player implements KeyListener, MouseListener {
     
     private void handleHorizontalMovement(CheckCollision collisionChecker, TileManager tileManager) {
         int dx = calculateHorizontalMovement();
-        
+    
         // Move and check collision
         worldX += dx;
+    
         if (collisionChecker.isColliding(this, tileManager)) {
             worldX -= dx;
+
         }
         
         updateFacingDirection(dx);
@@ -278,18 +280,47 @@ public class Player implements KeyListener, MouseListener {
     }
     
     private void handleVerticalMovementAndGravity(CheckCollision collisionChecker, TileManager tileManager) {
-        applyGravity();
-        
-        // Convert double to int movement for pixel-perfect positioning
-        int dy = (int)(verticalSpeed + 0.5);  // Round to nearest pixel
-        worldY += dy;
-        
-        if (handleVerticalCollision(collisionChecker, tileManager)) {
-            resolveVerticalCollision(dy > 0);
-        } else {
-            checkEdgeFall(collisionChecker, tileManager);
-        }
+    applyGravity();
+    
+    // 1. Calculate the intended move
+    int dy = (int)(verticalSpeed + 0.5); 
+    
+    // 2. Apply the move
+    worldY += dy;
+    
+    // 3. Check if this move caused a collision
+    if (collisionChecker.isColliding(this, tileManager)) {
+        // 4. Pass 'dy' into the resolver to fix the position
+        resolveVerticalCollision(dy, collisionChecker, tileManager);
+    } else {
+        // Only check for edge falls if we didn't just hit a floor
+        checkEdgeFall(collisionChecker, tileManager);
     }
+}
+
+private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, TileManager tileManager) {
+    if (dy > 0) { // Falling Down
+        isOnGround = true;
+        verticalSpeed = 0;
+
+        // Snapping logic: Calculate the bottom of the HITBOX, not the sprite
+        int hitboxBottom = worldY + HITBOX_Y_OFFSET + HITBOX_HEIGHT;
+        int tileTop = (hitboxBottom / TILE_SIZE) * TILE_SIZE;
+        
+        // Correct worldY so the hitbox bottom sits perfectly on tileTop
+        worldY = tileTop - HITBOX_HEIGHT - HITBOX_Y_OFFSET;
+
+    } else if (dy < 0) { // Jumping Up (Hitting Ceiling)
+        verticalSpeed = 0;
+        
+        // Snapping logic: Calculate the top of the HITBOX
+        int hitboxTop = worldY + HITBOX_Y_OFFSET;
+        int tileBottom = (hitboxTop / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
+        
+        // Correct worldY so the hitbox top sits perfectly at tileBottom
+        worldY = tileBottom - HITBOX_Y_OFFSET;
+    }
+}
     
     private void applyGravity() {
         if (!isOnGround) {
@@ -297,22 +328,6 @@ public class Player implements KeyListener, MouseListener {
             // Clamp vertical speed to prevent tunneling
             if (verticalSpeed > 12) verticalSpeed = 12;
         } else {
-            verticalSpeed = 0;
-        }
-    }
-    
-    private boolean handleVerticalCollision(CheckCollision collisionChecker, TileManager tileManager) {
-        return collisionChecker.isColliding(this, tileManager);
-    }
-    
-    private void resolveVerticalCollision(boolean falling) {
-        if (falling) {
-            // PERFECT GROUND SNAPPING - NO JITTER
-            isOnGround = true;
-            worldY = ((worldY + PLAYER_HEIGHT) / TILE_SIZE) * TILE_SIZE - PLAYER_HEIGHT;
-            verticalSpeed = 0;
-        } else {
-            // Hit ceiling
             verticalSpeed = 0;
         }
     }
