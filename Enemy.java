@@ -25,7 +25,6 @@ public class Enemy {
     private static final float MAX_FALL_SPEED = 12.0f;
     
     private static final float PATROL_RANGE = 50.0f;
-    private static final float ATTACK_RANGE = 10.0f;
     private static final int MAX_HEALTH = 100;
     
     private static final float TELEGRAPH_TIME = 0.5f;
@@ -42,7 +41,7 @@ public class Enemy {
         PATROL, CHASE, TELEGRAPH, ATTACK, HURT, DEAD
     }
 
-    private boolean isOnGround = false; // NEW: Track ground state for better physics handling
+    private boolean isOnGround = false; // Track ground state for better physics handling
     private boolean debugMode = false; // Set to true to enable hitbox debugging
     // ============================================================================
     // FIELDS
@@ -81,6 +80,7 @@ public class Enemy {
     private String chasePath = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/skeletonPack/Run/Sword";
     private String telegraphPath = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/skeletonPack/Idle/Sword";
     private String hurtPath = "C:/Users/mark/Desktop/Game-Dev-Java/Assets/skeletonPack/Hurt";
+    
     // ============================================================================
     // CONSTRUCTOR
     // ============================================================================
@@ -100,7 +100,7 @@ public class Enemy {
         if (currentState == State.DEAD) return;
         
         stateTimer += deltaTime;
-        updateGravity(tileManager); // NEW: Update gravity with tileManager for ground checks
+        updateGravity(tileManager); // Update gravity with tileManager for ground checks
         updateStateMachine(deltaTime, player);
         handleCollisions(collisionChecker, tileManager);
         handleAttack(player);
@@ -109,7 +109,7 @@ public class Enemy {
     }
     
     /**
-     * Render enemy with state-based visuals - FIXED SPRITE FLIPPING
+     * Render enemy with state-based visuals
      */
     public void draw(Graphics g) {
         if (currentState == State.DEAD) return;
@@ -137,7 +137,7 @@ public class Enemy {
             g.fillRect((int)x + 10, visualY, ENEMY_WIDTH - 20, ENEMY_HEIGHT - 20);
         }
 
-        // **NEW: Exclamation mark above enemy during telegraph state**
+        // Exclamation mark above enemy during telegraph state
         if (currentState == State.TELEGRAPH) {
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -149,7 +149,6 @@ public class Enemy {
         }
 
         renderDebugHitboxes(g);
-        
     }
 
     // ============================================================================
@@ -234,7 +233,6 @@ public class Enemy {
 
     private void loadPatrolFrames() {
         try {
-            // UPDATE THIS FILENAME TO MATCH YOUR ACTUAL FILE
             BufferedImage sheet = ImageIO.read(new File(patrolPath + "/MP_Skeleton_Default_Walk_Sword.png"));
             int frameWidth = sheet.getWidth() / 6;
             int frameHeight = sheet.getHeight();
@@ -253,7 +251,6 @@ public class Enemy {
 
     private void loadChaseFrames() {
         try {
-            // UPDATE THIS FILENAME TO MATCH YOUR ACTUAL FILE
             BufferedImage sheet = ImageIO.read(new File(chasePath + "/Skeleton_Default_Run_Sword.png"));
             int frameWidth = sheet.getWidth() / 6;
             int frameHeight = sheet.getHeight();
@@ -271,10 +268,9 @@ public class Enemy {
     }
 
     // ============================================================================
-    // ANIMATION SYSTEM - FIXED FOR PATROL
+    // ANIMATION SYSTEM
     // ============================================================================
     private BufferedImage getCurrentFrame() {
-        // FIXED: Now returns BOTH attack AND patrol frames!
         if (isAttacking && attackFrames != null && attackFrames.length > 0) {
             return attackFrames[Math.min(currentFrame, attackFrames.length - 1)];
         } else if (currentState == State.PATROL && patrolFrames != null && patrolFrames.length > 0) {
@@ -311,9 +307,9 @@ public class Enemy {
         }
     }
 
-    private void updateTelegraphAnimation(float deltaTime) { // Make public → private
+    private void updateTelegraphAnimation(float deltaTime) { 
         telegraphTimer += deltaTime;
-        if (telegraphTimer >= ANIMATION_SPEED) { // Use ANIMATION_SPEED
+        if (telegraphTimer >= ANIMATION_SPEED) { 
             currentFrame = (currentFrame + 1) % telegraphFrames.length;
             telegraphTimer = 0;
         }
@@ -366,13 +362,11 @@ public class Enemy {
             if (vy > 0) { 
                 vy = 0;
                 // Snap Y to the top of the tile to prevent sinking/jittering
-                // Formula: (Tile Index * Size) - Hitbox Height - Offset
                 y = (tileYBelow * TILE_SIZE) - (getEnemyHitbox().height + HITBOX_Y_OFFSET);
             }
         } else {
             vy += GRAVITY;
             if (vy > MAX_FALL_SPEED) vy = MAX_FALL_SPEED;
-            // Removed 'y += vy' from here to keep movement organized in handleCollisions
         }
     }
 
@@ -421,7 +415,7 @@ public class Enemy {
             transitionToChase();
         }
         
-        // 4. Handle specific state behaviors - PASS PLAYER TO ALL METHODS
+        // 4. Handle specific state behaviors
         switch (currentState) {
             case PATROL -> handlePatrolState(player, deltaTime);
             case CHASE -> handleChaseState(distToPlayer, player, deltaTime); 
@@ -446,34 +440,66 @@ public class Enemy {
         }
     }
 
+    // THIS IS THE METHOD THAT WAS FIXED
+    // THIS IS THE FULLY FIXED METHOD
     private void handleChaseState(float distanceToPlayer, Player player, float deltaTime) {
         chaseTimer += deltaTime;
         
-        float enemyCenterX = getEnemyHitbox().x + (getEnemyHitbox().width / 2);
-        float playerCenterX = player.getHitbox().x + (player.getHitbox().width / 2);
-        float adjustedDistance = distanceToPlayer - 25.0f; 
+        Rectangle enemyHb = getEnemyHitbox();
+        Rectangle playerHb = player.getHitbox(); 
+        
+        float enemyCenterX = enemyHb.x + (enemyHb.width / 2.0f);
+        float playerCenterX = playerHb.x + (playerHb.width / 2.0f);
 
-        direction = (playerCenterX > enemyCenterX) ? 1 : -1;
-        vx = direction * CHASE_SPEED;
+        // Calculate the absolute horizontal distance between centers FIRST
+        float horizontalDist = Math.abs(playerCenterX - enemyCenterX);
+        
+        // --- NEW: GIVE UP CHASE LOGIC ---
+        // If the player runs more than 500 pixels away, go back to patrolling
+        if (horizontalDist > 300) {
+            currentState = State.PATROL; // Transition back to patrol
+            stateTimer = 0;              // Reset state timer
+            return;                      // Exit this method so we don't process chase movement!
+        }
+        
+        // 1. Max distance: Enemy stops chasing and starts attacking
+        float maxAttackDistance = enemyHb.width + (ATTACK_HITBOX_WIDTH / 2.0f); 
+        
+        // 2. Min distance: Enemy must back up. 
+        float minAttackDistance = (enemyHb.width / 2.0f) + (playerHb.width / 2.0f); 
 
-        if (adjustedDistance < ATTACK_RANGE) {
-            transitionToTelegraph();
-        } else if (adjustedDistance > 100.0f) {
-            currentState = State.PATROL;
-            stateTimer = 0;
+        if (horizontalDist < minAttackDistance) {
+            // 1. PLAYER IS TOO CLOSE ("In the middle"): Move away to align the attack
+            if (horizontalDist < 0.1f) {
+                direction = 1; 
+            } else {
+                direction = (playerCenterX > enemyCenterX) ? -1 : 1; 
+            }
+            vx = direction * CHASE_SPEED;
+            
+        } else if (horizontalDist <= maxAttackDistance) {
+            // 2. PLAYER IS IN THE SWEET SPOT: Stop and attack
+            vx = 0; 
+            direction = (playerCenterX > enemyCenterX) ? 1 : -1;
+            transitionToTelegraph();  
+            
+        } else {
+            // 3. PLAYER IS TOO FAR (but still under 500px): Chase normally
+            direction = (playerCenterX > enemyCenterX) ? 1 : -1; 
+            vx = direction * CHASE_SPEED;
         }
     }
 
-    private void handleTelegraphState(float deltaTime, Player player) {  // ✅ Player param added
+    private void handleTelegraphState(float deltaTime, Player player) {  
         vx = 0;
         stateTimer += deltaTime;
         if (stateTimer > TELEGRAPH_TIME) {
             System.out.println("TELEGRAPH END → ATTACK");
-            startAttack(player);  // ✅ Now passes player
+            startAttack(player);  
         }
     }
 
-    private void handleAttackState(Player player) {  // ✅ Player param added
+    private void handleAttackState(Player player) {  
         vx = 0;
     }
 
@@ -496,9 +522,11 @@ public class Enemy {
     }
     
     private void transitionToTelegraph() {
-        currentState = State.TELEGRAPH;
-        stateTimer = 0;
-        vx = 0;
+        if (currentState != State.TELEGRAPH) {
+            currentState = State.TELEGRAPH;
+            stateTimer = 0;
+            vx = 0;
+        }
     }
     
     private void startAttack(Player player) {
@@ -509,11 +537,13 @@ public class Enemy {
         animationCounter = 0;
         attackTimer = 0;
         
-        // ✅ Null-safe direction calculation
+        // FORCE the direction based on the player's position relative to the skeleton
         if (player != null) {
-            direction = (player.getX() > x) ? 1 : -1;
-        } else {
-            System.out.println("WARNING: startAttack called with null player");
+            if (player.getX() < this.x) {
+                direction = -1; // Face Left
+            } else {
+                direction = 1;  // Face Right
+            }
         }
     }
     
@@ -525,24 +555,18 @@ public class Enemy {
         attackTimer = 0;
     }
 
-    // ============================================================================
     // COMBAT SYSTEM
-    // ============================================================================
 
     private Rectangle getAttackHitbox() {
         int attackX;
-        // Base the Y on the enemy's current Y + your offset
-        int attackY = (int)(y + ATTACK_HITBOX_Y_OFFSET); 
-
-        // Calculate the horizontal start of the body hitbox first
         int bodyHitboxX = (int)(x + HITBOX_X_OFFSET);
         int bodyHitboxWidth = ENEMY_WIDTH / 3;
+        int attackY = (int)(y + ATTACK_HITBOX_Y_OFFSET); 
 
-        if (direction == 1) { // Facing Right
-            // The attack starts at the right edge of the body hitbox
+        if (direction == 1) { // Right
             attackX = bodyHitboxX + bodyHitboxWidth + ATTACK_HITBOX_X_OFFSET;
-        } else { // Facing Left
-            // The attack starts at the left edge of the body and extends further left
+        } else { // Left
+            // Subtract the width and the offset to push it to the left side
             attackX = bodyHitboxX - ATTACK_HITBOX_WIDTH - ATTACK_HITBOX_X_OFFSET;
         }
 
@@ -554,8 +578,8 @@ public class Enemy {
         
         attackTimer += 1.0f / FPS;
         if (attackTimer >= ATTACK_DAMAGE_FRAME && attackTimer < ATTACK_DAMAGE_FRAME + 0.1f) {
-            performAttack(player);  // ✅ Now guaranteed non-null
-        }
+            performAttack(player);  
+        } 
     }
     
     private void performAttack(Player player) {
@@ -648,6 +672,4 @@ public class Enemy {
         health = 0;
         currentState = State.DEAD;
     }
-    
-
 }

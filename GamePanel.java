@@ -35,7 +35,6 @@ public class GamePanel extends JPanel implements Runnable {
             for (int c = 0; c < grid[r].length; c++) {
                 if (grid[r][c] == 8) { // Our Enemy Spawn ID
                     enemies.add(new Enemy(c * 32, r * 32));
-                    grid[r][c] = 0; // Clear the tile so the red box doesn't stay in the wall
                 }
             }
         }

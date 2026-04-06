@@ -49,9 +49,6 @@ public class TileManager {
                     g.drawImage(fullGreen, c * SIZE, r * SIZE, null);
                 } else if (id == 7) {
                     g.drawImage(portalFrames[animFrame], c * SIZE - 32, r * SIZE - 64, 128, 128, null);
-                } else if (id == 8) {
-                    g.setColor(Color.RED);
-                    g.fillRect(c * SIZE, r * SIZE, SIZE, SIZE);
                 }
             }
         }
