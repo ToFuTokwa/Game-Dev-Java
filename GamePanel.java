@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GamePanel extends JPanel implements Runnable {
+    private CardLayout cardLayout; // new change "Func/GameOver"
+    private JPanel mainPanel; // new change "func/gameover"
     private Player player = new Player();
     private LevelManager levelManager = new LevelManager();
     private TileManager tileManager;
@@ -13,7 +15,9 @@ public class GamePanel extends JPanel implements Runnable {
     private Image currentBackground;
     private Thread gameThread;
 
-    public GamePanel() {
+    public GamePanel(CardLayout cardLayout, JPanel mainPanel) {
+        this.cardLayout = cardLayout; // --
+        this.mainPanel = mainPanel; // --
         this.setPreferredSize(new Dimension(1280, 736));
         this.setFocusable(true);
         this.addKeyListener(player);
@@ -62,6 +66,8 @@ public class GamePanel extends JPanel implements Runnable {
         // Pass the entire list of enemies
         player.update(collisionChecker, tileManager, enemies); 
 
+        playerDead();
+
         for (Enemy e : enemies) {
             e.update(1.0f/60.0f, player, collisionChecker, tileManager);
         }
@@ -69,6 +75,21 @@ public class GamePanel extends JPanel implements Runnable {
         if (player.isInteractPressed()) {
             checkPortalContact();
         }
+    }
+
+    public void playerDead(){ // new
+        if (player.isDead()) {
+            cardLayout.show(mainPanel, "GameOver");
+            mainPanel.getComponent(2).requestFocusInWindow(); // Focus the GameOverPanel
+        }
+    }
+
+    public void resetGame(){ //new
+        player.resetStatus(); // Create this method in Player.java
+        levelManager.setLevel(0); // Start back at level 1
+        tileManager.setTileMap(levelManager.getCurrentLevel());
+        spawnEnemies();
+        player.setPosition(100, 100);
     }
 
     private void checkPortalContact() {

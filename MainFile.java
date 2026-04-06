@@ -8,19 +8,26 @@ public class MainFile {
         window.setResizable(false);
         window.setTitle("NewShit");
         
-        // Create CardLayout and the main container
+        // 1. Create CardLayout and the main container
         CardLayout cardLayout = new CardLayout();
         JPanel mainPanel = new JPanel(cardLayout);
 
-        // Initialize the GamePanel
-        GamePanel gamePanel = new GamePanel();
+        // 2. Initialize the GamePanel
+        // (Note: If you followed the previous guide, you might need to 
+        // pass cardLayout and mainPanel into this constructor)
+        GamePanel gamePanel = new GamePanel(cardLayout, mainPanel); 
 
-        // Initialize HomeUI and pass the layout and panel to it
+        // 3. Initialize HomeUI
         HomeUI homeUI = new HomeUI(cardLayout, mainPanel, gamePanel);
 
-        // Add both screens to the main container with unique names
+        // 4. Create the GameOverPanel object (This is what was missing!)
+        // Make sure you have created the GameOverPanel.java class first.
+        GameOverPanel gameOverPanel = new GameOverPanel(cardLayout, mainPanel, gamePanel);
+
+        // 5. Add screens to the main container
         mainPanel.add(homeUI, "Home");
         mainPanel.add(gamePanel, "Game");
+        mainPanel.add(gameOverPanel, "GameOver"); // Fixed typo: 'mainPanel' instead of 'mainpanel'
 
         window.add(mainPanel);
         window.pack();

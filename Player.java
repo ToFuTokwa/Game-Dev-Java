@@ -85,10 +85,8 @@ public class Player implements KeyListener, MouseListener {
     // =====================================================
     
     public void update(CheckCollision collisionChecker, TileManager tileManager, List<Enemy> enemies) {
-        if (isDead()) {
-        System.out.println("PLAYER DIED! Game Over.");
-        System.exit(0); // This is now reachable and logical
-    }
+        if (isDead()) return; // Just stop updating, GamePanel will handle the screen switch
+    
         handleInvulnerability();
         handleHorizontalMovement(collisionChecker, tileManager);
         handleEnemyCollisions(enemies);
@@ -147,6 +145,15 @@ public class Player implements KeyListener, MouseListener {
             // FIX: Use fillRect with the actual hitbox dimensions
             g.fillRect(attackHitbox.x, attackHitbox.y, attackHitbox.width, attackHitbox.height);
         }
+    }
+
+    public void resetStatus() {
+        this.currentHP = MAX_HP;
+        this.isInvulnerable = false;
+        this.isAttacking = false;
+        this.verticalSpeed = 0;
+        this.animationFrameIndex = 0;
+        resetInputs();
     }
 
     private void drawHPBar(Graphics g) {
