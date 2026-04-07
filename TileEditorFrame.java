@@ -100,8 +100,8 @@ public class TileEditorFrame extends JFrame {
         sidebar.add(new JSeparator(JSeparator.HORIZONTAL));
 
         // Tile Selection Buttons
-        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)", "Enemy Spawn (8)"};
-        int[] ids = {0, 1, 2, 3, 7, 8}; // Corresponding tile IDs
+        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)", "Enemy Spawn (8)", "PlayerSpawn"};
+        int[] ids = {0, 1, 2, 3, 7, 8, 9}; // Corresponding tile IDs
         for (int i = 0; i < tileNames.length; i++) {
             int id = ids[i];
             JButton b = new JButton(tileNames[i]);

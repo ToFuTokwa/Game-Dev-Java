@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GamePanel extends JPanel implements Runnable {
-    private CardLayout cardLayout; // new change "Func/GameOver"
-    private JPanel mainPanel; // new change "func/gameover"
+    private CardLayout cardLayout; 
+    private JPanel mainPanel; 
     private Player player = new Player();
     private LevelManager levelManager = new LevelManager();
     private TileManager tileManager;
@@ -16,8 +16,8 @@ public class GamePanel extends JPanel implements Runnable {
     private Thread gameThread;
 
     public GamePanel(CardLayout cardLayout, JPanel mainPanel) {
-        this.cardLayout = cardLayout; // --
-        this.mainPanel = mainPanel; // --
+        this.cardLayout = cardLayout; 
+        this.mainPanel = mainPanel; 
         this.setPreferredSize(new Dimension(1280, 736));
         this.setFocusable(true);
         this.addKeyListener(player);
@@ -26,6 +26,14 @@ public class GamePanel extends JPanel implements Runnable {
         tileManager = new TileManager(levelManager.getCurrentLevel());
         spawnEnemies(); // Load enemies for the first level
         updateLevelVisuals();
+        spawnPlayer(); // Spawn the player at the correct start location
+    }
+
+    private void spawnPlayer() {
+        Point spawnPoint = tileManager.getPlayerSpawnLocation();
+        // OFFSET: Subtract 48 pixels to spawn the character above the tile
+        // This prevents them from being stuck "inside" the floor
+        player.setPosition(spawnPoint.x, spawnPoint.y - 48);
     }
 
     private void spawnEnemies() {
@@ -76,19 +84,19 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    public void playerDead(){ // new
+    public void playerDead(){ 
         if (player.isDead()) {
             cardLayout.show(mainPanel, "GameOver");
             mainPanel.getComponent(2).requestFocusInWindow(); // Focus the GameOverPanel
         }
     }
 
-    public void resetGame(){ //new
-        player.resetStatus(); // Create this method in Player.java
+    public void resetGame(){ 
+        player.resetStatus(); 
         levelManager.setLevel(0); // Start back at level 1
         tileManager.setTileMap(levelManager.getCurrentLevel());
         spawnEnemies();
-        player.setPosition(100, 100);
+        spawnPlayer(); // Respawn player at the correct tile for level 1
     }
 
     private void checkPortalContact() {
@@ -121,12 +129,8 @@ public class GamePanel extends JPanel implements Runnable {
         spawnEnemies(); // SPAWN NEW ENEMIES FOR NEW LEVEL
         updateLevelVisuals();
         
-        // Find portal in the new level
-        Point spawnPoint = tileManager.getPortalLocation();
-        
-        // OFFSET: Subtract 48 pixels to spawn the character above the tile
-        // This prevents them from being stuck "inside" the floor
-        player.setPosition(spawnPoint.x, spawnPoint.y - 48);
+        // Spawn the player using the universal helper method
+        spawnPlayer();
     }
 
     @Override

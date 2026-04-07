@@ -10,6 +10,7 @@ public class TileManager {
     private int animFrame = 0;
     private long lastAnimTime = 0;
     private BufferedImage dirt, grass, fullGreen;
+    private boolean EditOn = true;
 
     public TileManager(TileMap map) {
         this.tileMap = map;
@@ -49,21 +50,27 @@ public class TileManager {
                     g.drawImage(fullGreen, c * SIZE, r * SIZE, null);
                 } else if (id == 7) {
                     g.drawImage(portalFrames[animFrame], c * SIZE - 32, r * SIZE - 64, 128, 128, null);
+                } else if (id == 8 && EditOn == true){
+                    g.setColor(Color.RED);
+                    g.drawRect(c * SIZE, r * SIZE, 32, 64);
+                } else if (id == 9) {
+                    g.setColor(Color.CYAN);
+                    g.drawRect(c * SIZE, r * SIZE, 32, 64);
                 }
             }
         }
     }
 
-    public Point getPortalLocation() {
+    public Point getPlayerSpawnLocation() {
         int[][] grid = tileMap.getMap();
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
-                if (grid[r][c] == 7) {
+                if (grid[r][c] == 9) { 
                     return new Point(c * SIZE, r * SIZE);
                 }
             }
         }
-        return new Point(100, 100); 
+        return new Point(100, 100); // Default fallback
     }
 
     public boolean isTileSolid(int col, int row) {
