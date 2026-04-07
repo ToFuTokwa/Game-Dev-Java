@@ -24,15 +24,13 @@ public class GamePanel extends JPanel implements Runnable {
         this.addMouseListener(player);
         
         tileManager = new TileManager(levelManager.getCurrentLevel());
-        spawnEnemies(); // Load enemies for the first level
+        spawnEnemies(); 
         updateLevelVisuals();
-        spawnPlayer(); // Spawn the player at the correct start location
+        spawnPlayer(); 
     }
 
     private void spawnPlayer() {
         Point spawnPoint = tileManager.getPlayerSpawnLocation();
-        // OFFSET: Subtract 48 pixels to spawn the character above the tile
-        // This prevents them from being stuck "inside" the floor
         player.setPosition(spawnPoint.x, spawnPoint.y - 48);
     }
 
@@ -41,7 +39,7 @@ public class GamePanel extends JPanel implements Runnable {
         int[][] grid = tileManager.getTileMap().getMap();
         for (int r = 0; r < grid.length; r++) {
             for (int c = 0; c < grid[r].length; c++) {
-                if (grid[r][c] == 8) { // Our Enemy Spawn ID
+                if (grid[r][c] == 8) { 
                     enemies.add(new Enemy(c * 32, r * 32));
                 }
             }
@@ -70,10 +68,12 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update() {
-        // Pass the entire list of enemies
         player.update(collisionChecker, tileManager, enemies); 
 
         playerDead();
+
+        // FIX: Remove dead enemies so the list eventually becomes empty
+        enemies.removeIf(e -> e.isDead());
 
         for (Enemy e : enemies) {
             e.update(1.0f/60.0f, player, collisionChecker, tileManager);
@@ -87,19 +87,24 @@ public class GamePanel extends JPanel implements Runnable {
     public void playerDead(){ 
         if (player.isDead()) {
             cardLayout.show(mainPanel, "GameOver");
-            mainPanel.getComponent(2).requestFocusInWindow(); // Focus the GameOverPanel
+            mainPanel.getComponent(2).requestFocusInWindow(); 
         }
     }
 
     public void resetGame(){ 
         player.resetStatus(); 
-        levelManager.setLevel(0); // Start back at level 1
+        levelManager.setLevel(0); 
         tileManager.setTileMap(levelManager.getCurrentLevel());
         spawnEnemies();
-        spawnPlayer(); // Respawn player at the correct tile for level 1
+        spawnPlayer(); 
     }
 
     private void checkPortalContact() {
+        // Guard: Prevent interaction if enemies still exist
+        if (!enemies.isEmpty()) {
+            return;
+        }
+
         Rectangle hitbox = player.getHitbox();
         int row = hitbox.y / 32;
         int col = hitbox.x / 32;
@@ -119,17 +124,11 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void advanceToNextLevel() {
         player.resetInputs();
-        
-        // Move to the next level index
         int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
         levelManager.setLevel(nextLevel);
-        
-        // Update the map and visuals
         tileManager.setTileMap(levelManager.getCurrentLevel());
-        spawnEnemies(); // SPAWN NEW ENEMIES FOR NEW LEVEL
+        spawnEnemies(); 
         updateLevelVisuals();
-        
-        // Spawn the player using the universal helper method
         spawnPlayer();
     }
 
@@ -137,11 +136,13 @@ public class GamePanel extends JPanel implements Runnable {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (currentBackground != null) g.drawImage(currentBackground, 0, 0, 1280, 736, null);
-        tileManager.draw(g);
+        
+        // Pass the condition: draw portal only if enemies list is empty
+        tileManager.draw(g, enemies.isEmpty());
+        
         for (Enemy e : enemies) {
             e.draw(g);
         }
-
         player.draw(g);
     }
 }

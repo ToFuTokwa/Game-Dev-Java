@@ -30,7 +30,7 @@ public class TileManager {
         } catch (Exception e) { System.out.println("Image loading failed."); }
     }
 
-    public void draw(Graphics g) {
+    public void draw(Graphics g, boolean allEnemiesDead) {
         if (System.currentTimeMillis() - lastAnimTime > 150) {
             animFrame = (animFrame + 1) % 8;
             lastAnimTime = System.currentTimeMillis();
@@ -48,17 +48,25 @@ public class TileManager {
                     g.drawImage(grass, c * SIZE, r * SIZE, null);
                 } else if (id == 3) {
                     g.drawImage(fullGreen, c * SIZE, r * SIZE, null);
-                } else if (id == 7) {
-                    g.drawImage(portalFrames[animFrame], c * SIZE - 32, r * SIZE - 64, 128, 128, null);
-                } else if (id == 8 && EditOn == true){
+                } else if (id == 7) { 
+                    // FIX: Only draw portal if enemies are gone
+                    if (allEnemiesDead) {
+                        g.drawImage(portalFrames[animFrame], c * SIZE - 32, r * SIZE - 64, 128, 128, null);
+                    }
+                } else if (id == 8 && EditOn){
                     g.setColor(Color.RED);
                     g.drawRect(c * SIZE, r * SIZE, 32, 64);
-                } else if (id == 9 && EditOn == true) {
+                } else if (id == 9 && EditOn) {
                     g.setColor(Color.CYAN);
                     g.drawRect(c * SIZE, r * SIZE, 32, 64);
                 }
             }
         }
+    }
+
+    // Overload for TileEditor which doesn't care about enemies
+    public void draw(Graphics g) {
+        draw(g, true); 
     }
 
     public Point getPlayerSpawnLocation() {
@@ -70,21 +78,15 @@ public class TileManager {
                 }
             }
         }
-        return new Point(100, 100); // Default fallback
+        return new Point(100, 100);
     }
 
     public boolean isTileSolid(int col, int row) {
         int[][] grid = tileMap.getMap();
-        
-        // 1. Boundary Check: Make sure we aren't checking outside the map array
         if (row < 0 || row >= grid.length || col < 0 || col >= grid[0].length) {
             return false;
         }
-
         int tileID = grid[row][col];
-
-        // 2. Solid Logic: ID 1 (Dirt), 2 (Grass), and 3 (FullGreen) are solid
-        // Adjust these IDs based on your game's solid tiles
         return tileID == 1 || tileID == 2 || tileID == 3;
     }
 
