@@ -10,7 +10,7 @@ public class TileManager {
     private int animFrame = 0;
     private long lastAnimTime = 0;
     private BufferedImage dirt, grass, fullGreen;
-    private boolean EditOn = true;
+    private boolean EditOn = false;
 
     public TileManager(TileMap map) {
         this.tileMap = map;
@@ -53,7 +53,7 @@ public class TileManager {
                 } else if (id == 8 && EditOn == true){
                     g.setColor(Color.RED);
                     g.drawRect(c * SIZE, r * SIZE, 32, 64);
-                } else if (id == 9) {
+                } else if (id == 9 && EditOn == true) {
                     g.setColor(Color.CYAN);
                     g.drawRect(c * SIZE, r * SIZE, 32, 64);
                 }
