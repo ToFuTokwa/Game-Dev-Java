@@ -75,11 +75,11 @@ public class Enemy {
     private float hurtTimer = 0;
 
     // Sprite Paths - UPDATE THESE TO MATCH YOUR FILES
-    private String attackPath = "Game-Dev-Java/Assets/skeletonPack/Attack/Sword";
-    private String patrolPath = "Game-Dev-Java/Assets/skeletonPack/Walk/Sword";
-    private String chasePath = "Game-Dev-Java/Assets/skeletonPack/Run/Sword";
-    private String telegraphPath = "Game-Dev-Java/Assets/skeletonPack/Idle/Sword";
-    private String hurtPath = "Game-Dev-Java/Assets/skeletonPack/Hurt";
+    private String attackPath = "Assets/skeletonPack/Attack/Sword";
+    private String patrolPath = "Assets/skeletonPack/Walk/Sword";
+    private String chasePath = "Assets/skeletonPack/Run/Sword";
+    private String telegraphPath = "Assets/skeletonPack/Idle/Sword";
+    private String hurtPath = "Assets/skeletonPack/Hurt";
     
     // ============================================================================
     // CONSTRUCTOR
