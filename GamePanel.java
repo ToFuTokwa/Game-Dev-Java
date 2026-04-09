@@ -124,6 +124,12 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void advanceToNextLevel() {
         player.resetInputs();
+        
+        // HEALING LOGIC: Calculate 10% of 100 (Max HP)
+        int healAmount = 10; 
+        player.heal(healAmount);
+        System.out.println("Level Cleared! Player healed for " + healAmount + " HP.");
+
         int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
         levelManager.setLevel(nextLevel);
         tileManager.setTileMap(levelManager.getCurrentLevel());
