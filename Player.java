@@ -14,7 +14,7 @@ public class Player implements KeyListener, MouseListener {
     private static final int PLAYER_WIDTH = 64;
     private static final int PLAYER_HEIGHT = 64;
 
-    private static final int MAX_HP = 100;
+    public int MAX_HP = 100;
     private int currentHP = MAX_HP;
     private boolean isInvulnerable = false;
     private long invulnerabilityStartTime = 0;

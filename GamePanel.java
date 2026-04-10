@@ -14,6 +14,7 @@ public class GamePanel extends JPanel implements Runnable {
     private List<Enemy> enemies = new ArrayList<>();
     private Image currentBackground;
     private Thread gameThread;
+    private int HPMax = player.MAX_HP;
 
     public GamePanel(CardLayout cardLayout, JPanel mainPanel) {
         this.cardLayout = cardLayout; 
@@ -124,9 +125,10 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void advanceToNextLevel() {
         player.resetInputs();
-        
-        // HEALING LOGIC: Calculate 10% of 100 (Max HP)
-        int healAmount = 10; 
+
+        // HEALING LOGIC: Calculate 10% of 100 (Max HP)\
+        // Calculate 20% of the player's max health
+        int healAmount = (int) ( HPMax * 0.20); 
         player.heal(healAmount);
         System.out.println("Level Cleared! Player healed for " + healAmount + " HP.");
 
