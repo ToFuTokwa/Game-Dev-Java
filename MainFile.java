@@ -6,29 +6,33 @@ public class MainFile {
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("NewShit");
+        window.setTitle("Dungeon Venture"); // Updated title
         
-        // Create CardLayout and the main container
         CardLayout cardLayout = new CardLayout();
         JPanel mainPanel = new JPanel(cardLayout);
 
-        // pass cardLayout and mainPanel into this constructor)
+        // 1. Initialize all panels
         GamePanel gamePanel = new GamePanel(cardLayout, mainPanel); 
-
-        // Initialize HomeUI
         HomeUI homeUI = new HomeUI(cardLayout, mainPanel, gamePanel);
-
-        // Make sure you have created the GameOverPanel.java class first.
         GameOverPanel gameOverPanel = new GameOverPanel(cardLayout, mainPanel, gamePanel);
+        Level3EndPanel endingPanel = new Level3EndPanel(cardLayout, mainPanel);
 
-        // Add screens to the main container
+        // 2. Add screens to the main container in a specific order
+        // Index 0
         mainPanel.add(homeUI, "Home");
+        // Index 1
         mainPanel.add(gamePanel, "Game");
+        // Index 2
         mainPanel.add(gameOverPanel, "GameOver");
+        // Index 3
+        mainPanel.add(endingPanel, "Ending"); 
 
         window.add(mainPanel);
         window.pack();
         window.setLocationRelativeTo(null);
         window.setVisible(true);
+
+        // Start at the Home screen
+        cardLayout.show(mainPanel, "Home");
     }
 }

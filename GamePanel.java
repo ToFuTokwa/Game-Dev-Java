@@ -126,18 +126,25 @@ public class GamePanel extends JPanel implements Runnable {
     private void advanceToNextLevel() {
         player.resetInputs();
 
-        // HEALING LOGIC: Calculate 10% of 100 (Max HP)\
-        // Calculate 20% of the player's max health
-        int healAmount = (int) ( HPMax * 0.10); 
+        // Your existing healing logic
+        int healAmount = (int) (HPMax * 0.10); 
         player.heal(healAmount);
-        System.out.println("Level Cleared! Player healed for " + healAmount + " HP.");
 
-        int nextLevel = (levelManager.getCurrentLevelIndex() + 1) % 3;
-        levelManager.setLevel(nextLevel);
-        tileManager.setTileMap(levelManager.getCurrentLevel());
-        spawnEnemies(); 
-        updateLevelVisuals();
-        spawnPlayer();
+        int currentLevel = levelManager.getCurrentLevelIndex();
+
+        // Check if this was the last level (Level 3 is index 2)
+        if (currentLevel == 2) {
+            cardLayout.show(mainPanel, "Ending");
+            mainPanel.getComponent(3).requestFocusInWindow(); // Target the EndingPanel
+        } else {
+            // Otherwise, move to next level normally
+            int nextLevel = currentLevel + 1;
+            levelManager.setLevel(nextLevel);
+            tileManager.setTileMap(levelManager.getCurrentLevel());
+            spawnEnemies(); 
+            updateLevelVisuals();
+            spawnPlayer();
+        }
     }
 
     @Override
