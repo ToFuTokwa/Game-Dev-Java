@@ -14,6 +14,8 @@ public class TileEditorFrame extends JFrame {
     private TileManager tileManager;
     private int selectedTileID = 1;
     private BufferedImage backgroundImage;
+    private JComboBox<String> levelSelector;
+    private JLabel statusLabel;
 
     public TileEditorFrame() {
         setTitle("New Shit Level Editor");
@@ -24,8 +26,8 @@ public class TileEditorFrame extends JFrame {
         // Initialize LevelManager
         levelManager = new LevelManager();
         
-        // Initial setup for Level 0
-        updateEditorLevel(0);
+        // Start with first valid level
+        updateEditorLevel(levelManager.getFirstValidLevelIndex());
 
         // Drawing Area (Canvas)
         JPanel canvas = new JPanel() {
@@ -33,7 +35,7 @@ public class TileEditorFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 
-                // 1. Draw Background from LevelManager
+                // 1. Draw Background
                 if (backgroundImage != null) {
                     g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
                 } else {
@@ -41,33 +43,66 @@ public class TileEditorFrame extends JFrame {
                     g.fillRect(0, 0, getWidth(), getHeight());
                 }
 
-                // 2. Draw Tiles via TileManager
-                if (tileManager != null) {
+                // 2. Draw Tiles (only if valid)
+                if (tileManager != null && levelManager.isCurrentLevelValid()) {
                     tileManager.draw(g);
                 }
 
-                // 3. Draw Grid Overlay
+                // 3. Draw Grid
                 g.setColor(new Color(255, 255, 255, 40));
-                for (int i = 0; i <= cols; i++) g.drawLine(i * tileSize, 0, i * tileSize, rows * tileSize);
-                for (int i = 0; i <= rows; i++) g.drawLine(0, i * tileSize, cols * tileSize, i * tileSize);
+                for (int i = 0; i <= cols; i++) {
+                    g.drawLine(i * tileSize, 0, i * tileSize, rows * tileSize);
+                }
+                for (int i = 0; i <= rows; i++) {
+                    g.drawLine(0, i * tileSize, cols * tileSize, i * tileSize);
+                }
+                
+                // 4. Warning if invalid level
+                if (!levelManager.isCurrentLevelValid()) {
+                    g.setColor(new Color(255, 0, 0, 120));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                    g.setColor(Color.WHITE);
+                    g.setFont(new Font("Arial", Font.BOLD, 24));
+                    FontMetrics fm = g.getFontMetrics();
+                    String warning = "INVALID LEVEL";
+                    int x = (getWidth() - fm.stringWidth(warning)) / 2;
+                    int y = (getHeight() + fm.getAscent()) / 2;
+                    g.drawString(warning, x, y);
+                    g.setFont(new Font("Arial", Font.PLAIN, 16));
+                    g.drawString("Use dropdown to load valid level", 
+                               (getWidth() - g.getFontMetrics().stringWidth("Use dropdown to load valid level")) / 2, 
+                               y + 30);
+                }
             }
         };
         
         canvas.setBounds(10, 10, cols * tileSize, rows * tileSize);
-        canvas.setOpaque(false);
+        canvas.setBackground(Color.BLACK);
+        canvas.setOpaque(true);
 
-        // Mouse Controls for Painting
+        // Mouse Controls - SAFE
         MouseAdapter ma = new MouseAdapter() {
             private void paint(MouseEvent e) {
+                if (!levelManager.isCurrentLevelValid()) return;
+                
                 int c = e.getX() / tileSize;
                 int r = e.getY() / tileSize;
-                if (r >= 0 && r < rows && c >= 0 && c < cols) {
-                    // Right click erases (sets to 0), Left click paints selected ID
-                    levelManager.getCurrentLevel().getMap()[r][c] = 
-                        (SwingUtilities.isRightMouseButton(e)) ? 0 : selectedTileID;
+                
+                if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+                
+                try {
+                    int newTileID = SwingUtilities.isRightMouseButton(e) ? 0 : selectedTileID;
+                    levelManager.getCurrentLevel().getMap()[r][c] = newTileID;
+                    
+                    if (tileManager != null) {
+                        tileManager.setTileMap(levelManager.getCurrentLevel());
+                    }
                     canvas.repaint();
+                } catch (Exception ex) {
+                    System.err.println("Paint error [" + r + "," + c + "]: " + ex.getMessage());
                 }
             }
+            
             @Override public void mousePressed(MouseEvent e) { paint(e); }
             @Override public void mouseDragged(MouseEvent e) { paint(e); }
         };
@@ -76,100 +111,168 @@ public class TileEditorFrame extends JFrame {
         canvas.addMouseMotionListener(ma);
         add(canvas);
 
-        // Sidebar Setup
+        // Sidebar
         JPanel sidebar = new JPanel();
         sidebar.setBounds(cols * tileSize + 20, 10, 180, rows * tileSize);
-        sidebar.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBackground(Color.DARK_GRAY);
+        sidebar.setOpaque(true);
 
-        // Level Selection Dropdown
-        sidebar.add(new JLabel("Select Level:"));
-        JComboBox<String> levelSelector = new JComboBox<>(levelManager.getLevelNames());
-        levelSelector.setPreferredSize(new Dimension(160, 30));
+        // Level Selection
+        JPanel levelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        levelPanel.setOpaque(false);
+        levelPanel.add(new JLabel("Level:"));
+        levelSelector = new JComboBox<>(levelManager.getLevelNames());
+        levelSelector.setPreferredSize(new Dimension(150, 25));
         levelSelector.addActionListener(e -> {
-            updateEditorLevel(levelSelector.getSelectedIndex());
+            int index = levelSelector.getSelectedIndex();
+            if (updateEditorLevel(index)) {
+                statusLabel.setText("Loaded: " + levelManager.getLevelNames()[index]);
+            } else {
+                JOptionPane.showMessageDialog(this, "Cannot load invalid level!", "Error", JOptionPane.WARNING_MESSAGE);
+                levelSelector.setSelectedIndex(levelManager.getCurrentLevelIndex());
+            }
             canvas.repaint();
         });
-        sidebar.add(levelSelector);
+        levelPanel.add(levelSelector);
+        sidebar.add(levelPanel);
+
+        sidebar.add(Box.createVerticalStrut(5));
 
         // Save Button
-        JButton btnSave = new JButton("Save Current Level");
+        JButton btnSave = new JButton("Save Level");
         btnSave.setPreferredSize(new Dimension(160, 30));
+        btnSave.setMaximumSize(new Dimension(160, 30));
+        btnSave.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnSave.addActionListener(e -> saveCurrentMap());
         sidebar.add(btnSave);
 
+        sidebar.add(Box.createVerticalStrut(10));
         sidebar.add(new JSeparator(JSeparator.HORIZONTAL));
 
-        // Tile Selection Buttons
-        String[] tileNames = {"Eraser (Air)", "Dirt", "Grass", "Full Green", "Portal (7)", "Enemy Spawn (8)", "PlayerSpawn"};
-        int[] ids = {0, 1, 2, 3, 7, 8, 9}; // Corresponding tile IDs
+        // Status
+        statusLabel = new JLabel("Ready", SwingConstants.CENTER);
+        statusLabel.setForeground(Color.WHITE);
+        statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        statusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        sidebar.add(statusLabel);
+
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(new JLabel("Tiles:", SwingConstants.CENTER));
+
+        // FIXED TILE BUTTONS - NO MORE RED ERROR!
+        String[] tileNames = {"Eraser", "Dirt", "Grass", "Green", "Portal", "Enemy", "Player"};
+        int[] ids = {0, 1, 2, 3, 7, 8, 9};
+        
         for (int i = 0; i < tileNames.length; i++) {
-            int id = ids[i];
-            JButton b = new JButton(tileNames[i]);
-            b.setPreferredSize(new Dimension(160, 30));
-            b.addActionListener(e -> selectedTileID = id);
+            final String name = tileNames[i];  // CAPTURED!
+            final int id = ids[i];
+            
+            JButton b = new JButton(name);
+            b.setPreferredSize(new Dimension(160, 28));
+            b.setMaximumSize(new Dimension(160, 28));
+            b.setAlignmentX(Component.CENTER_ALIGNMENT);
+            b.setMargin(new Insets(2, 5, 2, 5));
+            b.addActionListener(e -> {
+                selectedTileID = id;
+                // Clear other buttons
+                Component[] components = sidebar.getComponents();
+                for (Component c : components) {
+                    if (c instanceof JButton && !c.equals(b)) {
+                        ((JButton) c).setBackground(null);
+                    }
+                }
+                b.setBackground(selectedTileID == id ? Color.CYAN : null);
+                statusLabel.setText("Tile: " + name + " (ID:" + id + ")");
+            });
             sidebar.add(b);
+            sidebar.add(Box.createVerticalStrut(2));
         }
 
         add(sidebar);
         
-        // Animation Timer (Keeps portal spinning)
+        // Animation
         new Timer(150, e -> canvas.repaint()).start();
+
+        // Final status
+        statusLabel.setText("Ready - " + levelManager.getLevelNames()[levelManager.getCurrentLevelIndex()]);
 
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    private void updateEditorLevel(int index) {
-        levelManager.setLevel(index);
-        
-        // Update TileManager reference
-        if (tileManager == null) {
-            tileManager = new TileManager(levelManager.getCurrentLevel());
-        } else {
-            tileManager.setTileMap(levelManager.getCurrentLevel());
-        }
-
-        // Load background based on LevelManager path
+    private boolean updateEditorLevel(int index) {
         try {
-            String path = levelManager.getCurrentBackgroundPath();
-            File f = new File(path);
-            if (f.exists()) {
-                backgroundImage = ImageIO.read(f);
-            } else {
-                backgroundImage = null;
-                System.out.println("Background image not found: " + path);
+            levelManager.setLevel(index);
+            
+            if (!levelManager.isCurrentLevelValid()) {
+                return false;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            
+            // Update TileManager
+            if (tileManager == null) {
+                tileManager = new TileManager(levelManager.getCurrentLevel());
+            } else {
+                tileManager.setTileMap(levelManager.getCurrentLevel());
+            }
+
+            // Update selector
+            if (levelSelector != null) {
+                levelSelector.setSelectedIndex(index);
+            }
+
+            // Load background
+            try {
+                String path = levelManager.getCurrentBackgroundPath();
+                File f = new File(path);
+                backgroundImage = f.exists() ? ImageIO.read(f) : null;
+            } catch (IOException ignored) {
+                backgroundImage = null;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            System.err.println("updateEditorLevel failed: " + e.getMessage());
+            return false;
         }
     }
 
     private void saveCurrentMap() {
-        String name = JOptionPane.showInputDialog(this, "Save file name (e.g., level1):");
-        
-        if (name == null || name.trim().isEmpty()) {
+        if (!levelManager.isCurrentLevelValid()) {
+            JOptionPane.showMessageDialog(this, "Cannot save invalid level!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Ensure levels directory exists
-        File dir = new File("levels");
-        if (!dir.exists()) dir.mkdir();
+        String name = JOptionPane.showInputDialog(this, "Save as (e.g., level1):", "Save Level", JOptionPane.PLAIN_MESSAGE);
+        if (name == null || name.trim().isEmpty()) return;
 
-        try (PrintWriter pw = new PrintWriter(new File("levels/" + name + ".txt"))) {
-            int[][] grid = levelManager.getCurrentLevel().getMap();
+        File dir = new File("levels");
+        if (!dir.exists() && !dir.mkdirs()) {
+            JOptionPane.showMessageDialog(this, "Cannot create levels folder!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        File file = new File(dir, name.trim() + ".txt");
+        try (PrintWriter pw = new PrintWriter(file)) {
+            int[][] map = levelManager.getCurrentLevel().getMap();
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
-                    pw.print(grid[r][c] + (c < cols - 1 ? "," : ""));
+                    pw.print(map[r][c]);
+                    if (c < cols - 1) pw.print(",");
                 }
                 pw.println();
             }
-            JOptionPane.showMessageDialog(this, "Level saved: levels/" + name + ".txt");
+            JOptionPane.showMessageDialog(this, "Saved: " + file.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            statusLabel.setText("Saved: " + name);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error saving: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Save failed: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
         SwingUtilities.invokeLater(TileEditorFrame::new);
     }
 }
