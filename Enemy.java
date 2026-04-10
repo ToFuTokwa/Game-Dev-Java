@@ -17,7 +17,7 @@ public class Enemy {
     private static final int ATTACK_HITBOX_HEIGHT = 62;
     private static final int ATTACK_HITBOX_X_OFFSET = -5; // Adjust this for better alignment
     private static final int ATTACK_HITBOX_Y_OFFSET = 0; // Adjust this for better alignment
-    private static final int DAMAGE_AMOUNT = 25;
+    private static final int DAMAGE_AMOUNT = 35;
     
     private static final float PATROL_SPEED = 0.5f;
     private static final float CHASE_SPEED = 3.0f;
@@ -25,7 +25,7 @@ public class Enemy {
     private static final float MAX_FALL_SPEED = 12.0f;
     
     private static final float PATROL_RANGE = 50.0f;
-    private static final int MAX_HEALTH = 100;
+    private static final int MAX_HEALTH = 500;
     
     private static final float TELEGRAPH_TIME = 0.5f;
     private static final float ATTACK_DAMAGE_FRAME = 0.1f;

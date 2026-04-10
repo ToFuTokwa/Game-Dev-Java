@@ -128,7 +128,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         // HEALING LOGIC: Calculate 10% of 100 (Max HP)\
         // Calculate 20% of the player's max health
-        int healAmount = (int) ( HPMax * 0.20); 
+        int healAmount = (int) ( HPMax * 0.10); 
         player.heal(healAmount);
         System.out.println("Level Cleared! Player healed for " + healAmount + " HP.");
 

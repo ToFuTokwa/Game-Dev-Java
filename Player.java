@@ -14,13 +14,13 @@ public class Player implements KeyListener, MouseListener {
     private static final int PLAYER_WIDTH = 64;
     private static final int PLAYER_HEIGHT = 64;
 
-    public int MAX_HP = 100;
+    public int MAX_HP = 800;
     private int currentHP = MAX_HP;
     private boolean isInvulnerable = false;
     private long invulnerabilityStartTime = 0;
     private static final long INVULNERABILITY_DURATION = 1000; // 1 second
     private static final long INVULNERABILITY_FLASH_INTERVAL = 100; // Flash every 100ms
-    private static final int attack_damage = 25;
+    private static final int attack_damage = 70;
     
     // Hitbox perfectly centered and aligned with sprite edges
     private static final int HITBOX_X_OFFSET = 20;  // (64-24)/2 = 20px from left
