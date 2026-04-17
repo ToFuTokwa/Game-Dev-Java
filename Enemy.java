@@ -441,7 +441,7 @@ public class Enemy {
         }
         
         // 1. Max distance: Enemy stops chasing and starts attacking
-        float maxAttackDistance = enemyHb.width + (ATTACK_HITBOX_WIDTH / 2.0f); 
+        float maxAttackDistance = enemyHb.width + (ATTACK_HITBOX_WIDTH / 3.0f); 
         
         // 2. Min distance: Enemy must back up. 
         float minAttackDistance = (enemyHb.width / 2.0f) + (playerHb.width / 2.0f); 

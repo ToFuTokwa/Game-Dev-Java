@@ -3,6 +3,9 @@ import java.awt.*;
 
 public class MainFile {
     public static void main(String[] args) {
+        SoundPLayer soundPlayer = new SoundPLayer();
+        soundPlayer.init(); // Load sounds at the start of the game
+        soundPlayer.loop("UISound"); // Start background music immediately
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);

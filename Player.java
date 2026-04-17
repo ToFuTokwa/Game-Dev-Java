@@ -7,10 +7,8 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 public class Player implements KeyListener, MouseListener {
-    
-    // =====================================================
+    SoundPLayer soundPlayer = new SoundPLayer();
     // CONSTANTS - FIXED FOR NO JITTER
-    // =====================================================
     private static final int PLAYER_WIDTH = 64;
     private static final int PLAYER_HEIGHT = 64;
 
@@ -87,6 +85,7 @@ public class Player implements KeyListener, MouseListener {
         handleJumping();
         enforceScreenBoundaries();
         updateAnimationState();
+        walkSound();
     }
     
     public void draw(Graphics g) {
@@ -140,6 +139,14 @@ public class Player implements KeyListener, MouseListener {
         }
     }
 
+    public void walkSound() {
+        if ( isLeftPressed == true || isRightPressed == true) {
+            soundPlayer.loop("Walk");
+        } else {
+            soundPlayer.stop("Walk");
+        }
+    }
+
     public void resetStatus() {
         this.currentHP = MAX_HP;
         this.isInvulnerable = false;
@@ -179,6 +186,7 @@ public class Player implements KeyListener, MouseListener {
         if (isInvulnerable || currentHP <= 0) return;
         
         currentHP -= damage;
+        soundPlayer.play("ManHurt");
         isInvulnerable = true;
         invulnerabilityStartTime = System.currentTimeMillis();
         
@@ -340,6 +348,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
     private void handleJumping() {
         if (isOnGround && isJumpPressed) {
             verticalSpeed = JUMP_POWER;
+            soundPlayer.play("Jump");
             isOnGround = false;
         }
     }
@@ -484,6 +493,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
     @Override public void mouseClicked(MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1 && !isAttacking) {
             isAttacking = true;
+            soundPlayer.play("Punch");
             animationFrameIndex = 0;
         }
     }

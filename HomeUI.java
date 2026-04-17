@@ -5,6 +5,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class HomeUI extends JPanel {
+    SoundPLayer soundPlayer = new SoundPLayer();
     private final CardLayout cardLayout;
     private final JPanel mainPanel;
     private final GamePanel gamePanel;
@@ -101,6 +102,8 @@ public class HomeUI extends JPanel {
 
     private void setupActions() {
         startButton.addActionListener(e -> {
+            soundPlayer.stop("UISound");
+            soundPlayer.loop("BgSound");
             cardLayout.show(mainPanel, "Game");
             gamePanel.requestFocusInWindow();
             gamePanel.startGameThread();

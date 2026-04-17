@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GamePanel extends JPanel implements Runnable {
+    SoundPLayer soundPlayer = new SoundPLayer();
     private CardLayout cardLayout; 
     private JPanel mainPanel; 
     private Player player = new Player();
@@ -17,6 +18,8 @@ public class GamePanel extends JPanel implements Runnable {
     private int HPMax = player.MAX_HP;
 
     public GamePanel(CardLayout cardLayout, JPanel mainPanel) {
+        soundPlayer.stop("GameMusic");
+        soundPlayer.loop("MenuMusic");
         this.cardLayout = cardLayout; 
         this.mainPanel = mainPanel; 
         this.setPreferredSize(new Dimension(1280, 736));
