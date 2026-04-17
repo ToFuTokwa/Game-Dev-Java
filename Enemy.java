@@ -5,9 +5,7 @@ import java.io.File;
 
 public class Enemy {
     
-    // ============================================================================
     // CONSTANTS
-    // ============================================================================
     private static final int ENEMY_WIDTH = 128;
     private static final int ENEMY_HEIGHT = 128;
     private static final int HITBOX_X_OFFSET = 43; 
@@ -34,18 +32,14 @@ public class Enemy {
     private static final float FPS = 60.0f;
     private static final float ANIMATION_SPEED = 0.08f;
 
-    // ============================================================================
     // STATE ENUM
-    // ============================================================================
     public enum State {
         PATROL, CHASE, TELEGRAPH, ATTACK, HURT, DEAD
     }
 
     private boolean isOnGround = false; // Track ground state for better physics handling
     private boolean debugMode = false; // Set to true to enable hitbox debugging
-    // ============================================================================
-    // FIELDS
-    // ============================================================================
+
     // Position & Physics
     private float x, y;
     private float vx, vy;
@@ -81,18 +75,13 @@ public class Enemy {
     private String telegraphPath = "Assets/skeletonPack/Idle/Sword";
     private String hurtPath = "Assets/skeletonPack/Hurt";
     
-    // ============================================================================
     // CONSTRUCTOR
-    // ============================================================================
     public Enemy(float startX, float startY) {
         this.x = startX;
         this.y = startY;
         loadSprites();
     }
     
-    // ============================================================================
-    // CORE LOOP METHODS
-    // ============================================================================
     /**
      * Main update loop
      */
@@ -151,9 +140,7 @@ public class Enemy {
         renderDebugHitboxes(g);
     }
 
-    // ============================================================================
     // SPRITE LOADING
-    // ============================================================================
     private void loadSprites() {
         loadAttackFrames();
         loadPatrolFrames();
@@ -267,9 +254,7 @@ public class Enemy {
         }
     }
 
-    // ============================================================================
     // ANIMATION SYSTEM
-    // ============================================================================
     private BufferedImage getCurrentFrame() {
         if (isAttacking && attackFrames != null && attackFrames.length > 0) {
             return attackFrames[Math.min(currentFrame, attackFrames.length - 1)];
@@ -343,10 +328,7 @@ public class Enemy {
         }
     }
 
-    // ============================================================================
     // PHYSICS SYSTEM
-    // ============================================================================
-    
     private void updateGravity(TileManager tileManager) {
         Rectangle hitbox = getEnemyHitbox();
         int centerX = hitbox.x + (hitbox.width / 2);
@@ -370,9 +352,7 @@ public class Enemy {
         }
     }
 
-    // ============================================================================
     // COLLISION SYSTEM
-    // ============================================================================
     private void handleCollisions(CheckCollision collisionChecker, TileManager tileManager) {
         // --- 1. HANDLE X AXIS ---
         float oldX = x;
@@ -400,9 +380,7 @@ public class Enemy {
         }
     }
 
-    // ============================================================================
     // STATE MACHINE
-    // ============================================================================
     private void updateStateMachine(float deltaTime, Player player) {
         float enemyCenterX = getEnemyHitbox().x + (getEnemyHitbox().width / 2);
         float playerCenterX = player.getHitbox().x + (player.getHitbox().width / 2);
@@ -454,7 +432,7 @@ public class Enemy {
         // Calculate the absolute horizontal distance between centers FIRST
         float horizontalDist = Math.abs(playerCenterX - enemyCenterX);
         
-        // --- NEW: GIVE UP CHASE LOGIC ---
+        // CHASE LOGIC with distance checks:
         // If the player runs more than 500 pixels away, go back to patrolling
         if (horizontalDist > 300) {
             currentState = State.PATROL; // Transition back to patrol
@@ -599,9 +577,7 @@ public class Enemy {
         vy = -5.0f;
     }
 
-    // ============================================================================
     // RENDERING HELPERS
-    // ============================================================================
     private void applyStateVisuals(Graphics g) {
         switch (currentState) {
             case TELEGRAPH -> g.setColor(Color.YELLOW);
@@ -612,9 +588,7 @@ public class Enemy {
         }
     }
 
-    // ============================================================================
     // UTILITY & DEBUG METHODS
-    // ============================================================================
     public void borderHandling(TileManager tileManager) {
         int mapWidth = tileManager.getTileMap().getMap()[0].length * TILE_SIZE;
         
@@ -642,9 +616,7 @@ public class Enemy {
         System.out.println("========================");
     }
 
-    // ============================================================================
     // ACCESSORS
-    // ============================================================================
     public Rectangle getEnemyHitbox() {
         return new Rectangle(
             (int)(x + HITBOX_X_OFFSET),

@@ -14,13 +14,13 @@ public class Player implements KeyListener, MouseListener {
     private static final int PLAYER_WIDTH = 64;
     private static final int PLAYER_HEIGHT = 64;
 
-    public int MAX_HP = 800;
+    public int MAX_HP = 600;
     private int currentHP = MAX_HP;
     private boolean isInvulnerable = false;
     private long invulnerabilityStartTime = 0;
     private static final long INVULNERABILITY_DURATION = 1000; // 1 second
     private static final long INVULNERABILITY_FLASH_INTERVAL = 100; // Flash every 100ms
-    private static final int attack_damage = 70;
+    private static final int attack_damage = 70; //70
     
     // Hitbox perfectly centered and aligned with sprite edges
     private static final int HITBOX_X_OFFSET = 20;  // (64-24)/2 = 20px from left
@@ -52,9 +52,7 @@ public class Player implements KeyListener, MouseListener {
     private static final int TILE_SIZE = 32;
     private static final int SCREEN_WIDTH = 1280;
     
-    // =====================================================
     // STATE VARIABLES - USING INT FOR PIXEL-PERFECT POSITIONING
-    // =====================================================
     private int worldX = 100;
     private int worldY = 100;
     
@@ -73,17 +71,12 @@ public class Player implements KeyListener, MouseListener {
     // Input states
     private boolean isLeftPressed, isRightPressed, isJumpPressed, isInteractPressed;
 
-    // =====================================================
     // CONSTRUCTOR
-    // =====================================================
     public Player() {
         loadAnimations();
     }
     
-    // =====================================================
     // CORE METHODS
-    // =====================================================
-    
     public void update(CheckCollision collisionChecker, TileManager tileManager, List<Enemy> enemies) {
         if (isDead()) return; // Just stop updating, GamePanel will handle the screen switch
     
@@ -260,10 +253,7 @@ public class Player implements KeyListener, MouseListener {
         }
     }
     
-    // =====================================================
-    // MOVEMENT & COLLISION - PIXEL PERFECT
-    // =====================================================
-    
+    // MOVEMENT & COLLISION
     private void handleHorizontalMovement(CheckCollision collisionChecker, TileManager tileManager) {
         int dx = calculateHorizontalMovement();
     
@@ -367,10 +357,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
         }
     }
     
-    // =====================================================
     // ANIMATION SYSTEM
-    // =====================================================
-    
     private void updateAnimationState() {
         BufferedImage[] nextAnim = determineCurrentAnimation();
         if (nextAnim == null || nextAnim.length == 0) return;
@@ -421,10 +408,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
         return 0;
     }
     
-    // =====================================================
     // RESOURCE LOADING
-    // =====================================================
-    
     private void loadAnimations() {
         idleAnim = loadFrames(SPRITE_PATH + "playerIdle/", IDLE_FRAMES, IDLE_START);
         walkingAnim = loadFrames(SPRITE_PATH + "playerWalk/", WALK_FRAMES, WALK_START);
@@ -448,10 +432,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
         return frames;
     }
     
-    // =====================================================
     // COLLISION & ACCESSORS
-    // =====================================================
-    
     public Rectangle getHitbox() {
         return new Rectangle(
             worldX + HITBOX_X_OFFSET, 
@@ -471,10 +452,7 @@ private void resolveVerticalCollision(int dy, CheckCollision collisionChecker, T
     public boolean isInteractPressed() { return isInteractPressed; }
     public int getCurrentHP() { return currentHP; }
     
-    // =====================================================
     // INPUT HANDLING
-    // =====================================================
-    
     public void resetInputs() {
         isLeftPressed = isRightPressed = isJumpPressed = isInteractPressed = false;
     }
