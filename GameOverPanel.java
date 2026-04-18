@@ -4,11 +4,14 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class GameOverPanel extends JPanel {
+    SoundPLayer soundPlayer = new SoundPLayer();
     private CardLayout cardLayout;
     private JPanel mainPanel;
     private GamePanel gamePanel;
 
     public GameOverPanel(CardLayout cardLayout, JPanel mainPanel, GamePanel gamePanel) {
+        soundPlayer.stop("BgSound");
+        soundPlayer.loop("UISound");
         this.cardLayout = cardLayout;
         this.mainPanel = mainPanel;
         this.gamePanel = gamePanel;
@@ -35,6 +38,8 @@ public class GameOverPanel extends JPanel {
         gamePanel.resetGame(); // Reset player/enemies
         cardLayout.show(mainPanel, "Game");
         gamePanel.requestFocusInWindow();
+        soundPlayer.stop("UISound");  
+        soundPlayer.loop("BgSound");
     }
 
     @Override

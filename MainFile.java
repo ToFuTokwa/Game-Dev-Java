@@ -18,7 +18,7 @@ public class MainFile {
         GamePanel gamePanel = new GamePanel(cardLayout, mainPanel); 
         HomeUI homeUI = new HomeUI(cardLayout, mainPanel, gamePanel);
         GameOverPanel gameOverPanel = new GameOverPanel(cardLayout, mainPanel, gamePanel);
-        Level3EndPanel endingPanel = new Level3EndPanel(cardLayout, mainPanel);
+        Level3EndPanel endingPanel = new Level3EndPanel(cardLayout, mainPanel, gamePanel);
 
         // 2. Add screens to the main container in a specific order
         // Index 0

@@ -58,8 +58,14 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void startGameThread() {
-        gameThread = new Thread(this);
-        gameThread.start();
+        if (gameThread == null || !gameThread.isAlive()) {
+            gameThread = new Thread(this);
+            gameThread.start();
+        }
+    }
+
+    public void stopGameThread(){
+        gameThread = null;
     }
 
     @Override
@@ -90,16 +96,21 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void playerDead(){ 
         if (player.isDead()) {
+            stopGameThread();
             cardLayout.show(mainPanel, "GameOver");
-            mainPanel.getComponent(2).requestFocusInWindow(); 
+            mainPanel.getComponent(2).requestFocusInWindow();
+            soundPlayer.stop("BgSound");
+            soundPlayer.loop("UISound");
         }
     }
 
     public void resetGame(){ 
+        stopGameThread();
         player.resetStatus(); 
         levelManager.setLevel(0); 
         tileManager.setTileMap(levelManager.getCurrentLevel());
         spawnEnemies();
+        updateLevelVisuals();
         spawnPlayer(); 
     }
 
@@ -137,6 +148,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         // Check if this was the last level (Level 3 is index 2)
         if (currentLevel == 2) {
+            soundPlayer.stop("BgSound");
+            soundPlayer.loop("UISound");
             cardLayout.show(mainPanel, "Ending");
             mainPanel.getComponent(3).requestFocusInWindow(); // Target the EndingPanel
         } else {

@@ -4,12 +4,17 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class Level3EndPanel extends JPanel {
+    SoundPLayer soundPlayer = new SoundPLayer();
     private CardLayout cardLayout;
     private JPanel mainPanel;
+    private GamePanel gamePanel; // Reference to the actual game panel
 
-    public Level3EndPanel(CardLayout cardLayout, JPanel mainPanel) {
+    // Add GamePanel to the constructor parameters
+    public Level3EndPanel(CardLayout cardLayout, JPanel mainPanel, GamePanel gamePanel) {
         this.cardLayout = cardLayout;
         this.mainPanel = mainPanel;
+        this.gamePanel = gamePanel; // Store the reference
+        
         this.setBackground(Color.BLACK);
         this.setPreferredSize(new Dimension(1280, 736));
         this.setFocusable(true);
@@ -18,6 +23,7 @@ public class Level3EndPanel extends JPanel {
         this.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+                gamePanel.resetGame(); // Reset the REAL game panel here
                 cardLayout.show(mainPanel, "Home");
             }
         });
